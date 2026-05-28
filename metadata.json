@@ -1,0 +1,5 @@
+{
+  "name": "Gimme Five",
+  "description": "An interactive and minimalist web app for compiling five different Top 5 rankings in real-time during a podcast, optimized for iPad use.",
+  "requestFramePermissions": []
+}
