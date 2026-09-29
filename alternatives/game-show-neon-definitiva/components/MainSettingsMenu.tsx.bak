@@ -1,0 +1,163 @@
+import React, { useEffect, useState } from 'react';
+import { motion } from 'motion/react';
+import { Ranking } from '../types';
+import { easeOutQuart, quickTransition } from '../motionConfig';
+
+interface MainSettingsMenuProps {
+  guestNameSize: number;
+  onClose: () => void;
+  onGuestNameSizeChange: (size: number) => void;
+  onRankingMetaChange: (id: number, field: 'fullTitle' | 'keyword', value: string) => void;
+  rankings: Ranking[];
+  guestName: string;
+  onGuestNameChange: (name: string) => void;
+  onResetRanking: (id: number) => void;
+  onNewEpisode: () => void;
+}
+
+export const MainSettingsMenu: React.FC<MainSettingsMenuProps> = ({
+  guestNameSize,
+  onClose,
+  onGuestNameSizeChange,
+  onRankingMetaChange,
+  rankings,
+  guestName,
+  onGuestNameChange,
+  onResetRanking,
+  onNewEpisode,
+}) => {
+  // "Nuova puntata" cancella tutto: serve un secondo clic entro 4 secondi per confermare.
+  const [isConfirmingNewEpisode, setIsConfirmingNewEpisode] = useState(false);
+  useEffect(() => {
+    if (!isConfirmingNewEpisode) return;
+    const timeout = window.setTimeout(() => setIsConfirmingNewEpisode(false), 4000);
+    return () => window.clearTimeout(timeout);
+  }, [isConfirmingNewEpisode]);
+  const handleNewEpisode = () => (isConfirmingNewEpisode ? onNewEpisode() : setIsConfirmingNewEpisode(true));
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
+  return (
+    <motion.aside
+      className="fixed right-4 top-4 z-50 flex max-h-[calc(100vh-2rem)] w-[min(28rem,calc(100vw-2rem))] flex-col overflow-hidden rounded-lg border border-cyan-300/25 bg-black/90 text-white shadow-[0_0_40px_rgba(0,0,0,0.65)] backdrop-blur-md"
+      initial={{ opacity: 0, y: -10, scale: 0.98 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, y: -8, scale: 0.98 }}
+      transition={{ duration: 0.18, ease: easeOutQuart }}
+    >
+      <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+        <h2 className="text-sm font-bold uppercase tracking-[0.18em] text-cyan-300">Impostazioni</h2>
+        <motion.button
+          type="button"
+          onClick={onClose}
+          className="rounded-md border border-white/10 px-3 py-2 text-sm font-semibold text-white/80 transition-colors hover:border-cyan-300/60 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-400"
+          whileTap={{ scale: 0.98 }}
+          transition={quickTransition}
+        >
+          Chiudi
+        </motion.button>
+      </div>
+
+      <div className="space-y-5 overflow-y-auto px-4 py-4">
+        <section>
+          <label htmlFor="guest-name" className="text-sm font-semibold text-white mb-2 block">
+            Nome ospite
+          </label>
+          <input
+            id="guest-name"
+            type="text"
+            value={guestName}
+            onChange={(event) => onGuestNameChange(event.target.value)}
+            className="w-full rounded-md border border-white/10 bg-gray-900/90 px-3 py-2 text-sm text-white placeholder-white/30 outline-none transition-colors focus:border-cyan-300 focus:ring-2 focus:ring-cyan-400/35"
+            placeholder="Nome ospite..."
+          />
+        </section>
+
+        <section className="rounded-lg border border-white/10 bg-white/[0.03] p-4">
+          <div className="mb-3 flex items-center justify-between gap-4">
+            <label htmlFor="guest-name-size" className="text-sm font-semibold text-white">
+              Grandezza nome
+            </label>
+            <span className="text-sm font-bold text-cyan-300">{guestNameSize}%</span>
+          </div>
+          <input
+            id="guest-name-size"
+            type="range"
+            min="70"
+            max="130"
+            step="5"
+            value={guestNameSize}
+            onChange={(event) => onGuestNameSizeChange(Number(event.target.value))}
+            className="w-full accent-cyan-400"
+          />
+          <div className="mt-3 flex justify-between text-xs text-white/45">
+            <span>Più piccolo</span>
+            <span>Più grande</span>
+          </div>
+        </section>
+
+        <section className="space-y-3">
+          <h3 className="text-sm font-bold uppercase tracking-[0.16em] text-white/60">Classifiche</h3>
+          {rankings.map((ranking, index) => (
+            <div key={ranking.id} className="rounded-lg border border-white/10 bg-white/[0.03] p-3">
+              <p className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-cyan-300">
+                Classifica {index + 1}
+              </p>
+              <label className="mb-2 block text-xs font-semibold text-white/55" htmlFor={`ranking-title-${ranking.id}`}>
+                Titolo
+              </label>
+              <input
+                id={`ranking-title-${ranking.id}`}
+                type="text"
+                value={ranking.fullTitle}
+                onChange={(event) => onRankingMetaChange(ranking.id, 'fullTitle', event.target.value)}
+                className="mb-3 w-full rounded-md border border-white/10 bg-gray-900/90 px-3 py-2 text-sm text-white placeholder-white/30 outline-none transition-colors focus:border-cyan-300 focus:ring-2 focus:ring-cyan-400/35"
+                placeholder="Titolo esteso..."
+              />
+              <label className="mb-2 block text-xs font-semibold text-white/55" htmlFor={`ranking-keyword-${ranking.id}`}>
+                Parola in casella
+              </label>
+              <input
+                id={`ranking-keyword-${ranking.id}`}
+                type="text"
+                value={ranking.keyword}
+                onChange={(event) => onRankingMetaChange(ranking.id, 'keyword', event.target.value)}
+                className="w-full rounded-md border border-white/10 bg-gray-900/90 px-3 py-2 text-sm text-white placeholder-white/30 outline-none transition-colors focus:border-cyan-300 focus:ring-2 focus:ring-cyan-400/35"
+                placeholder="Keyword..."
+              />
+            </div>
+          ))}
+        </section>
+
+        {rankings.some(ranking => ranking.completed) && (
+          <section className="space-y-3">
+            <p className="text-sm font-semibold text-white">Classifiche completate</p>
+            {rankings.filter(ranking => ranking.completed).map(ranking => (
+              <div key={ranking.id} className="flex items-center justify-between gap-4">
+                <span className="min-w-0 break-words text-sm">{ranking.fullTitle}</span>
+                <button type="button" onClick={() => onResetRanking(ranking.id)} className="rounded-md border border-white/10 px-3 py-2 text-sm font-semibold text-white/80 transition-colors hover:border-cyan-300/60 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-400 shrink-0">
+                  Svuota
+                </button>
+              </div>
+            ))}
+          </section>
+        )}
+
+        <section>
+          <button type="button" onClick={handleNewEpisode} className="rounded-md border border-white/10 px-3 py-2 text-sm font-semibold text-white/80 transition-colors hover:border-cyan-300/60 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-400 w-full">
+            {isConfirmingNewEpisode ? 'Sicuro? Clicca ancora per ricominciare' : 'Nuova puntata'}
+          </button>
+        </section>
+      </div>
+    </motion.aside>
+  );
+};

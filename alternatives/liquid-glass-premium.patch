@@ -1,0 +1,668 @@
+diff --git a/components/DetailView.tsx b/components/DetailView.tsx
+index 468b3fa..ecccb47 100644
+--- a/components/DetailView.tsx
++++ b/components/DetailView.tsx
+@@ -1,64 +1,215 @@
+-import React, { useState, useEffect } from 'react';
++import React, { useState, useEffect, useRef } from 'react';
++import { AnimatePresence, motion } from 'motion/react';
+ import { Ranking } from '../types';
++import { broadcastTransition, easeOutQuart, liquidGlassSpring, liquidGlassTransition, quickTransition, screenTransition } from '../motionConfig';
+ 
+ interface DetailViewProps {
+   ranking: Ranking;
++  onTitleChange: (title: string) => void;
+   onSave: (id: number, entries: string[]) => void;
+   onBack: () => void;
+ }
+ 
+-export const DetailView: React.FC<DetailViewProps> = ({ ranking, onSave, onBack }) => {
++const listVariants = {
++  hidden: {},
++  visible: {
++    transition: {
++      staggerChildren: 0.055,
++      delayChildren: 0.1,
++    },
++  },
++};
++
++const rowVariants = {
++  hidden: { opacity: 0, y: 18, scale: 0.98, filter: 'blur(10px)' },
++  visible: {
++    opacity: 1,
++    y: 0,
++    scale: 1,
++    filter: 'blur(0px)',
++    transition: liquidGlassTransition,
++  },
++};
++
++export const DetailView: React.FC<DetailViewProps> = ({ ranking, onTitleChange, onSave, onBack }) => {
+   const [entries, setEntries] = useState<string[]>(['', '', '', '', '']);
++  const [isEditingTitle, setIsEditingTitle] = useState(false);
++  const titleInputRef = useRef<HTMLInputElement>(null);
++  const [isSaving, setIsSaving] = useState(false);
++  const saveTimeoutRef = useRef<number | null>(null);
+ 
+   useEffect(() => {
+     setEntries(ranking.entries);
+   }, [ranking]);
+ 
++  useEffect(() => {
++    if (!isEditingTitle) {
++      return;
++    }
++
++    titleInputRef.current?.focus();
++    titleInputRef.current?.select();
++  }, [isEditingTitle]);
++
++  useEffect(() => {
++    return () => {
++      if (saveTimeoutRef.current !== null) {
++        window.clearTimeout(saveTimeoutRef.current);
++      }
++    };
++  }, []);
++
+   const handleInputChange = (index: number, value: string) => {
+-    const newEntries = [...entries];
+-    newEntries[index] = value;
+-    setEntries(newEntries);
++    setEntries(prevEntries =>
++      prevEntries.map((entry, entryIndex) => entryIndex === index ? value : entry)
++    );
++  };
++
++  const handleTitleKeyDown = (event: React.KeyboardEvent<HTMLInputElement>) => {
++    if (event.key === 'Enter' || event.key === 'Escape') {
++      event.preventDefault();
++      setIsEditingTitle(false);
++    }
+   };
+ 
+   const handleSaveClick = () => {
+-    onSave(ranking.id, entries);
++    if (isSaving) {
++      return;
++    }
++
++    setIsSaving(true);
++    saveTimeoutRef.current = window.setTimeout(() => {
++      onSave(ranking.id, entries);
++    }, 320);
+   };
+ 
+   return (
+-    <div className="w-full max-w-3xl mx-auto flex flex-col items-center">
++    <div className="relative w-full max-w-3xl mx-auto flex flex-col items-center">
++      <motion.div
++        className="pointer-events-none absolute inset-x-[-18%] top-[-6rem] h-56 rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.1),rgba(34,211,238,0.12)_42%,transparent_72%)] blur-3xl"
++        initial={{ opacity: 0, scale: 0.86 }}
++        animate={{ opacity: [0.16, 0.34, 0.22], scale: [0.96, 1.04, 1] }}
++        transition={{ duration: 4.6, ease: easeOutQuart, repeat: Infinity, repeatType: 'mirror' }}
++      />
+       <header className="w-full text-center mb-12">
+-        <h1 className="text-5xl sm:text-7xl font-bold text-gray-900 dark:text-white">{ranking.fullTitle}</h1>
++        <AnimatePresence mode="wait" initial={false}>
++          {isEditingTitle ? (
++            <motion.input
++              key="title-input"
++              ref={titleInputRef}
++              type="text"
++              value={ranking.fullTitle}
++              onChange={(event) => onTitleChange(event.target.value)}
++              onBlur={() => setIsEditingTitle(false)}
++              onKeyDown={handleTitleKeyDown}
++              className="w-full bg-transparent px-3 py-1 text-center text-5xl font-bold text-white outline-none placeholder-white/30 focus:ring-2 focus:ring-cyan-400 sm:text-7xl"
++              placeholder="Titolo classifica"
++              initial={{ opacity: 0, y: 8, scale: 0.99 }}
++              animate={{ opacity: 1, y: 0, scale: 1 }}
++              exit={{ opacity: 0, y: -6, scale: 0.99 }}
++              transition={quickTransition}
++            />
++          ) : (
++            <motion.h1
++              key="title-display"
++              className="cursor-text text-5xl font-black text-gray-900 drop-shadow-[0_0_22px_rgba(255,255,255,0.12)] dark:text-white sm:text-7xl"
++              title="Doppio click per modificare"
++              onDoubleClick={() => setIsEditingTitle(true)}
++              initial={{ opacity: 0, y: 16, scale: 0.96, filter: 'blur(10px)' }}
++              animate={{ opacity: 1, y: 0, scale: 1, filter: 'blur(0px)' }}
++              exit={{ opacity: 0, y: -8, scale: 0.98 }}
++              transition={liquidGlassTransition}
++            >
++              {ranking.fullTitle || 'Titolo classifica'}
++            </motion.h1>
++          )}
++        </AnimatePresence>
++        <motion.div
++          className="mx-auto mt-5 h-px w-32 bg-white/45 shadow-[0_0_20px_rgba(34,211,238,0.36)]"
++          initial={{ opacity: 0, scaleX: 0 }}
++          animate={{ opacity: [0, 0.82, 0.62], scaleX: [0, 1.08, 1] }}
++          transition={{ ...liquidGlassTransition, delay: 0.08 }}
++        />
+       </header>
+       
+-      <main className="w-full flex flex-col space-y-5">
++      <motion.main
++        className="w-full flex flex-col space-y-5"
++        variants={listVariants}
++        initial="hidden"
++        animate="visible"
++      >
+         {entries.map((entry, index) => (
+-          <div key={index} className="flex items-center space-x-4 w-full">
+-            <span className="text-5xl font-black text-cyan-500 dark:text-cyan-400 w-10 text-center">{index + 1}</span>
+-            <input
+-              type="text"
+-              value={entry}
+-              onChange={(e) => handleInputChange(index, e.target.value)}
+-              placeholder={`Posizione #${index + 1}`}
+-              className="w-full bg-gray-200 dark:bg-gray-800 border-2 border-gray-300 dark:border-gray-700 rounded-lg p-6 text-2xl text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-4 focus:ring-cyan-500 focus:border-cyan-500 transition-all duration-200"
+-            />
+-          </div>
++          <motion.div key={index} className="flex items-center space-x-4 w-full" variants={rowVariants}>
++            <motion.span
++              className="w-10 text-center text-5xl font-black text-cyan-200/90 drop-shadow-[0_0_14px_rgba(34,211,238,0.3)]"
++              initial={{ opacity: 0, scale: 0.82 }}
++              animate={{ opacity: 1, scale: 1 }}
++              transition={{ ...liquidGlassTransition, delay: 0.1 + index * 0.045 }}
++            >
++              {index + 1}
++            </motion.span>
++            <motion.div
++              className="relative flex-1 overflow-hidden rounded-lg"
++              whileFocus={{ scale: 1.01 }}
++              transition={quickTransition}
++            >
++              <input
++                type="text"
++                value={entry}
++                onChange={(e) => handleInputChange(index, e.target.value)}
++                placeholder={`Posizione #${index + 1}`}
++                className="w-full rounded-lg border border-white/14 bg-white/[0.065] p-6 text-2xl text-white placeholder-white/34 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),0_18px_60px_rgba(0,0,0,0.22)] backdrop-blur-2xl transition-all duration-200 focus:border-cyan-200/55 focus:outline-none focus:ring-4 focus:ring-cyan-300/18"
++              />
++              <motion.span
++                className="pointer-events-none absolute left-0 right-0 top-0 h-px bg-white/48 shadow-[0_0_18px_rgba(255,255,255,0.22)]"
++                initial={{ opacity: 0, x: '-100%' }}
++                animate={{ opacity: [0, 0.7, 0], x: '100%' }}
++                transition={{ ...liquidGlassTransition, delay: 0.14 + index * 0.07 }}
++              />
++              <motion.span
++                className="pointer-events-none absolute inset-0 rounded-lg bg-[linear-gradient(110deg,transparent_8%,rgba(255,255,255,0.09)_36%,transparent_62%)]"
++                initial={{ x: '-120%' }}
++                animate={{ x: '120%' }}
++                transition={{ ...liquidGlassTransition, delay: 0.18 + index * 0.08 }}
++              />
++            </motion.div>
++          </motion.div>
+         ))}
+-      </main>
++      </motion.main>
+ 
+       <footer className="w-full flex items-center justify-between mt-16 space-x-4">
+-        <button
++        <motion.button
+           onClick={onBack}
+           className="px-12 py-5 text-xl bg-gray-300 dark:bg-gray-700 text-gray-800 dark:text-white font-semibold rounded-lg hover:bg-gray-400 dark:hover:bg-gray-600 focus:outline-none focus:ring-4 focus:ring-gray-500 focus:ring-opacity-50 transition-colors duration-200"
++          whileHover={{ scale: 1.03 }}
++          whileTap={{ scale: 0.98 }}
++          transition={liquidGlassSpring}
+         >
+           Indietro
+-        </button>
+-        <button
++        </motion.button>
++        <motion.button
+           onClick={handleSaveClick}
+-          className="px-12 py-5 bg-cyan-600 text-white font-bold text-2xl rounded-lg shadow-lg shadow-cyan-500/30 dark:shadow-cyan-900/50 hover:bg-cyan-500 focus:outline-none focus:ring-4 focus:ring-cyan-500 focus:ring-opacity-50 transition-all duration-200 transform hover:scale-105"
++          disabled={isSaving}
++          className="relative overflow-hidden px-12 py-5 bg-cyan-600 text-white font-bold text-2xl rounded-lg shadow-lg shadow-cyan-500/30 dark:shadow-cyan-900/50 hover:bg-cyan-500 focus:outline-none focus:ring-4 focus:ring-cyan-500 focus:ring-opacity-50 transition-colors duration-200 disabled:cursor-wait"
++          animate={isSaving ? { scale: [1, 0.98, 1.035], boxShadow: ['0 0 24px rgba(34,211,238,0.22)', '0 0 50px rgba(255,255,255,0.28)', '0 0 24px rgba(34,211,238,0.22)'] } : { scale: 1 }}
++          whileHover={isSaving ? undefined : { scale: 1.035, y: -2 }}
++          whileTap={isSaving ? undefined : { scale: 0.98 }}
++          transition={liquidGlassSpring}
+         >
++          <AnimatePresence>
++            {isSaving && (
++              <motion.span
++                className="pointer-events-none absolute inset-0 rounded-lg border border-cyan-100/80"
++                initial={{ opacity: 0.9, scale: 0.96 }}
++                animate={{ opacity: 0, scale: 1.18 }}
++                exit={{ opacity: 0 }}
++                transition={broadcastTransition}
++              />
++            )}
++          </AnimatePresence>
+           Salva Classifica
+-        </button>
++        </motion.button>
+       </footer>
+     </div>
+   );
+-};
+\ No newline at end of file
++};
+diff --git a/components/MainView.tsx b/components/MainView.tsx
+index 9d04612..3c15b50 100644
+--- a/components/MainView.tsx
++++ b/components/MainView.tsx
+@@ -1,84 +1,374 @@
+-import React from 'react';
+-import { Ranking } from '../types';
++import React, { useEffect, useRef, useState } from 'react';
++import { AnimatePresence, motion } from 'motion/react';
++import { Ranking, RankingBox } from '../types';
+ import { Logo } from './Logo';
++import { MainSettingsMenu } from './MainSettingsMenu';
++import { broadcastTransition, easeOutQuart, liquidGlassSpring, liquidGlassTransition, quickTransition, screenTransition } from '../motionConfig';
+ 
+ interface MainViewProps {
+   guestName: string;
++  guestNameSize: number;
+   setGuestName: (name: string) => void;
++  setGuestNameSize: (size: number) => void;
+   rankings: Ranking[];
+-  onSelectRanking: (id: number) => void;
++  rankingBoxes: RankingBox[];
++  onRankingMetaChange: (id: number, field: 'fullTitle' | 'keyword', value: string) => void;
++  onSelectRanking: (boxId: number) => void;
+   onLogoClick: () => void;
+ }
+ 
+-const Bubble: React.FC<{ ranking: Ranking; onSelect: (id: number) => void }> = ({ ranking, onSelect }) => {
+-  const baseClasses = "relative w-full aspect-square rounded-full flex flex-col items-center justify-center p-4 text-center cursor-pointer transition-all duration-300 ease-in-out transform hover:scale-110 focus:outline-none focus:ring-4 focus:ring-offset-2 focus:ring-offset-black";
+-  const animationDelay = `${ranking.id * 200}ms`;
++const gridVariants = {
++  hidden: {},
++  visible: {
++    transition: {
++      staggerChildren: 0.075,
++      delayChildren: 0.08,
++    },
++  },
++};
++
++const bubbleVariants = {
++  hidden: { opacity: 0, y: 24, scale: 0.9, filter: 'blur(12px)' },
++  visible: {
++    opacity: 1,
++    y: 0,
++    scale: 1,
++    filter: 'blur(0px)',
++    transition: liquidGlassTransition,
++  },
++};
++
++const bubbleStateVariants = {
++  idle: { opacity: 1, scale: 1, y: 0, filter: 'saturate(1) brightness(1)' },
++  selected: { opacity: 1, scale: 1.055, y: -6, filter: 'saturate(1.12) brightness(1.08)' },
++  dimmed: { opacity: 0.38, scale: 0.96, y: 2, filter: 'saturate(0.72) brightness(0.82)' },
++};
++
++const broadcastDelays = [0, 0.12];
++
++const selectionSweepTransition = {
++  duration: 0.9,
++  ease: easeOutQuart,
++};
++
++const glassAuroras = [
++  { left: '22%', top: '12%', size: '28rem', color: 'rgba(34,211,238,0.14)', delay: 0 },
++  { left: '64%', top: '8%', size: '34rem', color: 'rgba(255,255,255,0.08)', delay: 0.16 },
++  { left: '78%', top: '58%', size: '24rem', color: 'rgba(255,100,196,0.1)', delay: 0.28 },
++];
+ 
+-  if (ranking.completed) {
++const Bubble: React.FC<{
++  box: RankingBox;
++  isDimmed: boolean;
++  isInteractionLocked: boolean;
++  isSelected: boolean;
++  onSelect: (boxId: number) => void;
++}> = ({ box, isDimmed, isInteractionLocked, isSelected, onSelect }) => {
++  const baseClasses = "group relative isolate w-full aspect-square rounded-full flex flex-col items-center justify-center overflow-hidden p-4 text-center cursor-pointer focus:outline-none focus:ring-4 focus:ring-offset-2 focus:ring-offset-black";
++  const animationDelay = `${box.boxId * 200}ms`;
++  const ranking = box.ranking;
++  const visualState = isSelected ? 'selected' : isDimmed ? 'dimmed' : 'idle';
++  const handleClick = () => {
++    if (isInteractionLocked) {
++      return;
++    }
++
++    onSelect(box.boxId);
++  };
++  const broadcastRings = (
++    <AnimatePresence>
++      {isSelected &&
++        broadcastDelays.map(delay => (
++          <motion.span
++            key={delay}
++            className="pointer-events-none absolute inset-[-16%] rounded-full border border-cyan-100/50 shadow-[0_0_42px_rgba(34,211,238,0.28)]"
++            initial={{ opacity: 0.48, scale: 0.86 }}
++            animate={{ opacity: 0, scale: 1.72 }}
++            exit={{ opacity: 0 }}
++            transition={{ duration: 0.9, ease: easeOutQuart, delay }}
++          />
++        ))}
++    </AnimatePresence>
++  );
++
++  if (ranking?.completed) {
+     const keyword = ranking.keyword;
+-    let fontSizeClass = 'text-4xl';
+-    if (keyword.length > 5) fontSizeClass = 'text-3xl';
+-    if (keyword.length > 8) fontSizeClass = 'text-2xl';
+-    if (keyword.length > 12) fontSizeClass = 'text-xl';
++    let fontSizeClass = 'text-2xl sm:text-4xl';
++    if (keyword.length > 5) fontSizeClass = 'text-xl sm:text-3xl';
++    if (keyword.length > 8) fontSizeClass = 'text-lg sm:text-2xl';
++    if (keyword.length > 12) fontSizeClass = 'text-base sm:text-xl';
+ 
+     return (
+-      <div
+-        onClick={() => onSelect(ranking.id)}
+-        className={`${baseClasses} bg-gradient-to-br from-cyan-500 to-cyan-700 border-2 border-cyan-500 shadow-lg shadow-cyan-600/30 focus:ring-cyan-500 animate-float-fast`}
++      <motion.div
++        layout
++        variants={bubbleVariants}
+         style={{ animationDelay }}
+       >
+-        <h3 
+-          className={`${fontSizeClass} font-bold text-white break-words`}
+-          style={{ WebkitTextStroke: '3px black', paintOrder: 'stroke fill' }}
++        <motion.button
++          type="button"
++          aria-label={`Apri ${ranking.keyword}`}
++          onClick={handleClick}
++          className={`${baseClasses} border border-cyan-100/45 bg-cyan-300/18 shadow-[inset_0_1px_0_rgba(255,255,255,0.4),0_24px_70px_rgba(34,211,238,0.18)] backdrop-blur-2xl focus:ring-cyan-300`}
++          variants={bubbleStateVariants}
++          animate={visualState}
++          transition={liquidGlassSpring}
++          layout
++          whileHover={isInteractionLocked ? undefined : { scale: 1.045, y: -5 }}
++          whileTap={isInteractionLocked ? undefined : { scale: 0.97 }}
+         >
+-          {ranking.keyword}
+-        </h3>
+-        <div className="absolute bottom-3 right-3 text-white">
+-          <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" viewBox="0 0 20 20" fill="currentColor">
+-            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+-          </svg>
+-        </div>
+-      </div>
++          <motion.span
++            className="pointer-events-none absolute inset-[-3px] rounded-full bg-[conic-gradient(from_90deg,transparent_0deg,rgba(255,255,255,0.42)_46deg,rgba(34,211,238,0.24)_92deg,transparent_152deg,transparent_360deg)] opacity-0 blur-sm"
++            initial={false}
++            animate={isSelected ? { opacity: [0, 0.58, 0], rotate: [0, 180, 360] } : { opacity: 0, rotate: 0 }}
++            transition={selectionSweepTransition}
++          />
++          <span className="pointer-events-none absolute inset-0 rounded-full bg-[radial-gradient(circle_at_44%_18%,rgba(255,255,255,0.42),transparent_34%),linear-gradient(145deg,rgba(255,255,255,0.2),transparent_46%,rgba(0,0,0,0.18))] opacity-90" />
++          <motion.span
++            className="pointer-events-none absolute inset-[9%] rounded-full border border-white/18"
++            initial={{ opacity: 0, scale: 0.92 }}
++            animate={{ opacity: [0.16, 0.34, 0.18], scale: [0.96, 1.02, 0.98] }}
++            transition={{ duration: 2.8, ease: easeOutQuart, repeat: Infinity, repeatType: 'mirror' }}
++          />
++          <motion.h3
++            key={ranking.keyword}
++            className={`${fontSizeClass} font-bold text-white break-words drop-shadow-[0_0_18px_rgba(34,211,238,0.32)]`}
++            initial={{ opacity: 0, y: 12, scale: 0.94 }}
++            animate={{ opacity: 1, y: 0, scale: 1 }}
++            transition={{ ...liquidGlassTransition, delay: 0.04 }}
++            style={{ WebkitTextStroke: '3px black', paintOrder: 'stroke fill' }}
++          >
++            {ranking.keyword}
++          </motion.h3>
++          {broadcastRings}
++        </motion.button>
++      </motion.div>
+     );
+   }
+ 
+   return (
+-    <div
+-      onClick={() => onSelect(ranking.id)}
+-      className={`${baseClasses} bg-gray-800/50 backdrop-blur-sm border-2 border-gray-500 hover:border-cyan-400 hover:bg-gray-700/50 focus:ring-cyan-400 animate-float-slow`}
++    <motion.div
++      layout
++      variants={bubbleVariants}
+       style={{ animationDelay }}
+     >
+-      <h2 className="text-7xl font-black text-gray-400">{ranking.id}</h2>
+-    </div>
++      <motion.button
++        type="button"
++        aria-label={`Apri casella ${box.boxId}`}
++        onClick={handleClick}
++        className={`${baseClasses} border border-white/18 bg-white/[0.055] shadow-[inset_0_1px_0_rgba(255,255,255,0.18),0_24px_80px_rgba(0,0,0,0.32)] backdrop-blur-2xl hover:border-cyan-200/45 hover:bg-cyan-100/[0.075] focus:ring-cyan-300`}
++        variants={bubbleStateVariants}
++        animate={visualState}
++        transition={liquidGlassSpring}
++        layout
++        whileHover={isInteractionLocked ? undefined : { scale: 1.04, y: -5 }}
++        whileTap={isInteractionLocked ? undefined : { scale: 0.97 }}
++      >
++        <motion.span
++          className="pointer-events-none absolute inset-[-28%] rounded-full bg-[radial-gradient(circle,rgba(34,211,238,0.22),transparent_58%)] opacity-0 blur-2xl"
++          initial={false}
++          animate={isSelected ? { opacity: [0, 0.62, 0.22], scale: [0.86, 1.12, 1.02] } : { opacity: 0, scale: 0.92 }}
++          transition={liquidGlassTransition}
++        />
++        <motion.span
++          className="pointer-events-none absolute inset-[-1px] rounded-full border border-cyan-200/0 shadow-[0_0_0_rgba(34,211,238,0)]"
++          initial={false}
++          animate={
++            isSelected
++              ? {
++                  borderColor: 'rgba(165, 243, 252, 0.82)',
++                  boxShadow: '0 0 32px rgba(34, 211, 238, 0.28), inset 0 1px 0 rgba(255,255,255,0.34)',
++                }
++              : {
++                  borderColor: 'rgba(165, 243, 252, 0)',
++                  boxShadow: '0 0 0 rgba(34, 211, 238, 0)',
++                }
++          }
++          transition={quickTransition}
++        />
++        <span className="pointer-events-none absolute inset-0 rounded-full bg-[radial-gradient(circle_at_44%_18%,rgba(255,255,255,0.22),transparent_36%),linear-gradient(145deg,rgba(255,255,255,0.13),transparent_48%,rgba(0,0,0,0.18))]" />
++        <span className="pointer-events-none absolute inset-[10%] rounded-full border border-white/8" />
++        <motion.span
++          className="pointer-events-none absolute inset-0 rounded-full bg-[linear-gradient(110deg,transparent_18%,rgba(255,255,255,0.18)_42%,transparent_64%)]"
++          animate={isSelected ? { x: ['-120%', '120%'] } : { x: '-120%' }}
++          transition={liquidGlassTransition}
++        />
++        <motion.h2
++          className="text-5xl font-black text-gray-300/85 sm:text-7xl"
++          animate={isSelected ? { color: '#f4fdff', textShadow: '0 0 22px rgba(34,211,238,0.42)' } : { color: 'rgba(209,213,219,0.82)', textShadow: '0 0 0 rgba(34,211,238,0)' }}
++          transition={quickTransition}
++        >
++          {box.boxId}
++        </motion.h2>
++        {broadcastRings}
++      </motion.button>
++    </motion.div>
+   );
+ };
+ 
+ 
+-export const MainView: React.FC<MainViewProps> = ({ guestName, setGuestName, rankings, onSelectRanking, onLogoClick }) => {
++export const MainView: React.FC<MainViewProps> = ({
++  guestName,
++  guestNameSize,
++  setGuestName,
++  setGuestNameSize,
++  rankings,
++  rankingBoxes,
++  onRankingMetaChange,
++  onSelectRanking,
++  onLogoClick
++}) => {
++  const [selectedBoxId, setSelectedBoxId] = useState<number | null>(null);
++  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
++  const selectTimeoutRef = useRef<number | null>(null);
++  const guestNameScale = guestNameSize / 100;
++
++  useEffect(() => {
++    return () => {
++      if (selectTimeoutRef.current !== null) {
++        window.clearTimeout(selectTimeoutRef.current);
++      }
++    };
++  }, []);
++
++  const handleSelectBox = (boxId: number) => {
++    if (selectedBoxId !== null) {
++      return;
++    }
++
++    setSelectedBoxId(boxId);
++    selectTimeoutRef.current = window.setTimeout(() => {
++      onSelectRanking(boxId);
++    }, 420);
++  };
++
+   return (
+-    <div className="w-full h-full flex flex-col items-center justify-center py-8">
+-      <div 
++    <div className="relative w-full h-full flex flex-col items-center justify-center py-8">
++      <div className="pointer-events-none absolute inset-[-12%] z-0 overflow-hidden [mask-image:radial-gradient(ellipse_at_center,black_0%,black_64%,transparent_86%)]">
++        {glassAuroras.map((orb) => (
++          <motion.div
++            key={`${orb.left}-${orb.top}`}
++            className="absolute rounded-full blur-3xl mix-blend-screen"
++            style={{
++              left: orb.left,
++              top: orb.top,
++              width: orb.size,
++              height: orb.size,
++              background: `radial-gradient(circle, ${orb.color}, transparent 66%)`,
++            }}
++            initial={{ opacity: 0, x: '-50%', y: '-50%', scale: 0.92 }}
++            animate={{ opacity: [0.24, 0.44, 0.28], x: ['-52%', '-48%', '-50%'], y: ['-50%', '-54%', '-48%'], scale: [0.92, 1.06, 0.98] }}
++            transition={{
++              duration: 5.4,
++              ease: easeOutQuart,
++              repeat: Infinity,
++              repeatType: 'mirror',
++              delay: orb.delay,
++            }}
++          />
++        ))}
++        <motion.div
++          className="absolute left-1/2 top-[56%] h-48 w-[70%] -translate-x-1/2 rounded-full border border-white/8 bg-white/[0.035] blur-xl"
++          animate={{ opacity: [0.16, 0.3, 0.2], scale: [0.98, 1.03, 1] }}
++          transition={{ duration: 4.2, ease: easeOutQuart, repeat: Infinity, repeatType: 'mirror' }}
++        />
++      </div>
++
++      <motion.button
++        type="button"
++        aria-label="Apri impostazioni"
++        title="Impostazioni"
++        onClick={() => setIsSettingsOpen(true)}
++        className="absolute right-0 top-0 z-40 flex h-12 w-12 items-center justify-center rounded-md border border-cyan-300/0 bg-black/0 text-cyan-100 opacity-0 shadow-[0_0_22px_rgba(34,211,238,0)] backdrop-blur transition-all duration-150 hover:border-cyan-300/35 hover:bg-black/55 hover:opacity-100 hover:shadow-[0_0_22px_rgba(34,211,238,0.18)] focus:opacity-100 focus:outline-none focus:ring-2 focus:ring-cyan-300"
++        whileHover={{ scale: 1.04 }}
++        whileTap={{ scale: 0.96 }}
++        transition={quickTransition}
++      >
++        <svg
++          aria-hidden="true"
++          className="h-5 w-5"
++          fill="none"
++          stroke="currentColor"
++          strokeLinecap="round"
++          strokeLinejoin="round"
++          strokeWidth="2"
++          viewBox="0 0 24 24"
++        >
++          <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" />
++          <path d="M19.4 15a1.7 1.7 0 0 0 .34 1.88l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06A1.7 1.7 0 0 0 15 19.4a1.7 1.7 0 0 0-1 .9l-.03.08a2 2 0 0 1-3.76 0l-.03-.08a1.7 1.7 0 0 0-1-.9 1.7 1.7 0 0 0-1.88.34l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.7 1.7 0 0 0 4.6 15a1.7 1.7 0 0 0-.9-1l-.08-.03a2 2 0 0 1 0-3.76l.08-.03a1.7 1.7 0 0 0 .9-1 1.7 1.7 0 0 0-.34-1.88l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.7 1.7 0 0 0 9 4.6a1.7 1.7 0 0 0 1-.9l.03-.08a2 2 0 0 1 3.76 0l.03.08a1.7 1.7 0 0 0 1 .9 1.7 1.7 0 0 0 1.88-.34l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.7 1.7 0 0 0 19.4 9c.33.12.65.42.9 1l.08.03a2 2 0 0 1 0 3.76l-.08.03a1.7 1.7 0 0 0-.9 1Z" />
++        </svg>
++      </motion.button>
++
++      <AnimatePresence>
++        {isSettingsOpen && (
++          <MainSettingsMenu
++            guestNameSize={guestNameSize}
++            onClose={() => setIsSettingsOpen(false)}
++            onGuestNameSizeChange={setGuestNameSize}
++            onRankingMetaChange={onRankingMetaChange}
++            rankings={rankings}
++          />
++        )}
++      </AnimatePresence>
++
++      <motion.div
+         onClick={onLogoClick}
+-        className="w-full max-w-[58rem] z-10 cursor-pointer px-4"
++        className="z-10 w-full max-w-[min(52rem,76vh)] cursor-pointer px-4 drop-shadow-[0_0_28px_rgba(255,255,255,0.1)]"
++        initial={{ opacity: 0, y: -12, scale: 0.985 }}
++        animate={{ opacity: 1, y: 0, scale: 1 }}
++        transition={{ ...screenTransition, delay: 0.04 }}
++        whileHover={{ scale: 1.012 }}
++        whileTap={{ opacity: 0.84 }}
+       >
+         <Logo />
+-      </div>
++      </motion.div>
+       
+-      <header className="z-20 mt-4 mb-12 sm:mb-[6.4rem] w-full">
++      <motion.header
++        className="z-20 mt-2 mb-8 w-full sm:mb-10"
++        initial={{ opacity: 0, y: 10 }}
++        animate={{ opacity: 1, y: 0 }}
++        transition={{ ...screenTransition, delay: 0.1 }}
++      >
+          <input
+             type="text"
+             value={guestName}
+             onChange={(e) => setGuestName(e.target.value)}
+-            className="w-full bg-transparent text-white placeholder-gray-400 text-4xl sm:text-6xl lg:text-8xl font-black text-center py-3 px-6 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:rounded-lg transition-all"
++            className="w-full bg-transparent text-white placeholder-gray-400 text-4xl sm:text-7xl lg:text-8xl xl:text-9xl leading-none font-black text-center py-3 px-6 focus:outline-none focus:ring-2 focus:ring-cyan-400 focus:rounded-lg transition-all"
++            style={{
++              fontSize: `clamp(${2.25 * guestNameScale}rem, ${8 * guestNameScale}vh, ${7 * guestNameScale}rem)`,
++            }}
+             placeholder="Nome Ospite"
+         />
+-      </header>
++      </motion.header>
+       
+-      <main className="w-full max-w-6xl mx-auto grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-8 z-10">
+-        {rankings.map((ranking) => (
+-          <Bubble key={ranking.id} ranking={ranking} onSelect={onSelectRanking} />
++      <motion.main
++        className="relative z-10 mx-auto grid w-full max-w-6xl grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-8 lg:grid-cols-5"
++        variants={gridVariants}
++        initial="hidden"
++        animate="visible"
++        layout
++      >
++        <AnimatePresence>
++          {selectedBoxId !== null && (
++            <motion.div
++              className="pointer-events-none absolute inset-[-10%] -z-10 rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.16),rgba(34,211,238,0.16)_38%,transparent_68%)] blur-2xl"
++              initial={{ opacity: 0, scale: 0.82 }}
++              animate={{ opacity: [0, 0.66, 0.16], scale: [0.82, 1.14, 1.02] }}
++              exit={{ opacity: 0 }}
++              transition={liquidGlassTransition}
++            />
++          )}
++        </AnimatePresence>
++        {rankingBoxes.map((box) => (
++          <Bubble
++            key={box.boxId}
++            box={box}
++            isDimmed={selectedBoxId !== null && selectedBoxId !== box.boxId}
++            isInteractionLocked={selectedBoxId !== null}
++            isSelected={selectedBoxId === box.boxId}
++            onSelect={handleSelectBox}
++          />
+         ))}
+-      </main>
++      </motion.main>
+     </div>
+   );
+ };

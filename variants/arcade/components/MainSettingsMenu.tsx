@@ -1,0 +1,187 @@
+import React, { useEffect, useState } from 'react';
+import { motion } from 'motion/react';
+import { Ranking } from '../types';
+import { PixelButton, PixelInput, PixelText } from './Pixel';
+import { arcadeColor, pixelSteps, sound } from '../arcade';
+
+interface MainSettingsMenuProps {
+  guestNameSize: number;
+  onClose: () => void;
+  onGuestNameSizeChange: (size: number) => void;
+  onRankingMetaChange: (id: number, field: 'fullTitle' | 'keyword', value: string) => void;
+  rankings: Ranking[];
+  guestName: string;
+  onGuestNameChange: (name: string) => void;
+  onResetRanking: (id: number) => void;
+  onNewEpisode: () => void;
+}
+
+export const MainSettingsMenu: React.FC<MainSettingsMenuProps> = ({
+  guestNameSize,
+  onClose,
+  onGuestNameSizeChange,
+  onRankingMetaChange,
+  rankings,
+  guestName,
+  onGuestNameChange,
+  onResetRanking,
+  onNewEpisode,
+}) => {
+  // "Nuova puntata" cancella tutto: serve un secondo clic entro 4 secondi per confermare.
+  const [isConfirmingNewEpisode, setIsConfirmingNewEpisode] = useState(false);
+  useEffect(() => {
+    if (!isConfirmingNewEpisode) return;
+    const timeout = window.setTimeout(() => setIsConfirmingNewEpisode(false), 4000);
+    return () => window.clearTimeout(timeout);
+  }, [isConfirmingNewEpisode]);
+  const handleNewEpisode = () => (isConfirmingNewEpisode ? onNewEpisode() : setIsConfirmingNewEpisode(true));
+
+  const [isSoundOn, setIsSoundOn] = useState(sound.isOn);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        onClose();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
+  const toggleSound = () => {
+    sound.setOn(!isSoundOn);
+    setIsSoundOn(!isSoundOn);
+    sound.select();
+  };
+
+  return (
+    // Finestra "opzioni" da cabinato: si apre dall'alto verso il basso a scatti, come una tendina disegnata riga per riga.
+    <motion.aside
+      className="pixel-frame fixed right-4 top-4 z-[60] w-[min(30rem,calc(100vw-2rem))] origin-top bg-[var(--arc-cyan)] p-1"
+      initial={{ scaleY: 0 }}
+      animate={{ scaleY: 1 }}
+      exit={{ scaleY: 0 }}
+      transition={{ duration: 0.2, ease: pixelSteps(5) }}
+    >
+      <div className="pixel-frame flex max-h-[calc(100vh-3rem)] flex-col bg-[var(--crt-bg)] text-[var(--phosphor)]">
+        <div className="flex items-center justify-between gap-4 border-b-4 border-dotted border-[var(--arc-cyan)]/40 px-5 py-4">
+          <h2 className="text-2xl text-[var(--arc-cyan)]">
+            <PixelText text="IMPOSTAZIONI" flash={false} />
+          </h2>
+          <PixelButton label="CHIUDI" onClick={onClose} color="#ff64c4" textClassName="text-sm" className="[&>span]:px-3 [&>span]:py-2" />
+        </div>
+
+        <div className="space-y-7 overflow-y-auto px-5 py-5">
+          <section className="space-y-3">
+            <label htmlFor="guest-name" className="block text-sm opacity-70">
+              <PixelText text="NOME OSPITE" flash={false} />
+            </label>
+            <PixelInput id="guest-name" value={guestName} onChange={(event) => onGuestNameChange(event.target.value)} placeholder="NOME OSPITE" className="text-lg text-[var(--phosphor)]" />
+          </section>
+
+          <section>
+            <div className="mb-3 flex items-center justify-between gap-4">
+              <label htmlFor="guest-name-size" className="text-sm opacity-70">
+                <PixelText text="GRANDEZZA NOME" flash={false} />
+              </label>
+              <span className="text-lg text-[var(--arc-yellow)]">
+                <PixelText text={`${guestNameSize}%`} flash={false} />
+              </span>
+            </div>
+            <input
+              id="guest-name-size"
+              type="range"
+              min="70"
+              max="130"
+              step="5"
+              value={guestNameSize}
+              onChange={(event) => {
+                onGuestNameSizeChange(Number(event.target.value));
+                sound.blip();
+              }}
+              className="w-full accent-[var(--arc-yellow)]"
+            />
+          </section>
+
+          <section className="flex items-center justify-between gap-4">
+            <span className="text-sm opacity-70">
+              <PixelText text="SUONI" flash={false} />
+            </span>
+            <PixelButton
+              label={isSoundOn ? 'ON' : 'OFF'}
+              onClick={toggleSound}
+              color={isSoundOn ? '#39ff88' : '#ff64c4'}
+              textClassName="text-base"
+              className="[&>span]:px-4 [&>span]:py-2"
+            />
+          </section>
+
+          <section className="space-y-5">
+            <h3 className="text-sm opacity-70">
+              <PixelText text="CLASSIFICHE" flash={false} />
+            </h3>
+            {rankings.map((ranking, index) => (
+              <div key={ranking.id} className="space-y-3 border-t-4 border-dotted border-[var(--phosphor)]/10 pt-4" style={{ color: arcadeColor(index) }}>
+                <p className="text-xs">
+                  <PixelText text={`N°${index + 1}`} flash={false} />
+                </p>
+                <label className="block text-[0.65rem] text-[var(--phosphor)] opacity-50" htmlFor={`ranking-title-${ranking.id}`}>
+                  <PixelText text="TITOLO" flash={false} />
+                </label>
+                <PixelInput
+                  id={`ranking-title-${ranking.id}`}
+                  value={ranking.fullTitle}
+                  onChange={(event) => onRankingMetaChange(ranking.id, 'fullTitle', event.target.value)}
+                  placeholder="TITOLO ESTESO..."
+                  aria-label={`Titolo classifica ${index + 1}`}
+                  className="text-lg"
+                />
+                <label className="block text-[0.65rem] text-[var(--phosphor)] opacity-50" htmlFor={`ranking-keyword-${ranking.id}`}>
+                  <PixelText text="PAROLA IN CASELLA" flash={false} />
+                </label>
+                <PixelInput
+                  id={`ranking-keyword-${ranking.id}`}
+                  value={ranking.keyword}
+                  onChange={(event) => onRankingMetaChange(ranking.id, 'keyword', event.target.value)}
+                  placeholder="PAROLA..."
+                  aria-label={`Parola in casella ${index + 1}`}
+                  className="text-lg"
+                />
+              </div>
+            ))}
+          </section>
+
+          {rankings.some(ranking => ranking.completed) && (
+            <section className="space-y-4 border-t-4 border-dotted border-[var(--phosphor)]/10 pt-4">
+              <p className="text-sm opacity-70"><PixelText text="CLASSIFICHE COMPLETATE" flash={false} /></p>
+              {rankings.filter(ranking => ranking.completed).map(ranking => (
+                <div key={ranking.id} className="flex items-center justify-between gap-4">
+                  <span className="min-w-0 text-sm text-[var(--phosphor)]"><PixelText text={ranking.fullTitle} flash={false} /></span>
+                  <PixelButton label="SVUOTA" onClick={() => onResetRanking(ranking.id)} color="#ffb347" textClassName="text-xs" className="shrink-0 [&>span]:px-3 [&>span]:py-2" />
+                </div>
+              ))}
+            </section>
+          )}
+
+          <section className="border-t-4 border-dotted border-[var(--phosphor)]/10 pt-5">
+            <PixelButton
+              label={isConfirmingNewEpisode ? 'SICURO? CLICCA ANCORA' : 'NUOVA PUNTATA'}
+              onClick={handleNewEpisode}
+              color="#ff64c4"
+              textClassName="text-sm"
+              className="w-full"
+            />
+            <PixelButton
+              label="CAMBIA VERSIONE"
+              onClick={() => { window.location.href = '/'; }}
+              color="#00d0ff"
+              textClassName="text-sm"
+              className="mt-3 w-full"
+            />
+          </section>
+        </div>
+      </div>
+    </motion.aside>
+  );
+};
