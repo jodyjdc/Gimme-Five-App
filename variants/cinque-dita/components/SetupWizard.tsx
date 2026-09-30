@@ -79,7 +79,6 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onSetupComplete }) => 
         lit={[1, 2, 3, 4, 5].map(finger => step > finger)}
         palm={step > 0}
         warm={step > 0 ? step - 1 : 'palm'}
-        color="cyan"
         className="mb-10 h-44"
         style={{ aspectRatio: HAND_ASPECT }}
       />

@@ -11,10 +11,11 @@ import { assignRankingToBox, buildRankingBoxes, selectRankingForBox } from './ra
 import { easeOutQuart, screenTransition } from './motionConfig';
 
 // Solo opacità: trasformazioni sul contenitore falserebbero la casella che si trasforma nel titolo.
+// La schermata che se ne va sparisce in fretta, quella che arriva entra con calma: niente due schermate piene insieme.
 const screenVariants = {
   hidden: { opacity: 0 },
-  visible: { opacity: 1 },
-  exit: { opacity: 0 },
+  visible: { opacity: 1, transition: { duration: 0.4, ease: easeOutQuart } },
+  exit: { opacity: 0, transition: { duration: 0.18, ease: easeOutQuart } },
 };
 
 // I cambi di schermata arrivano anche da timer (dopo il faro, dopo il blocco del salvataggio).

@@ -52,7 +52,7 @@ export const ScreensaverView: React.FC<ScreensaverViewProps> = ({ rankings, onEx
                 {ranking.fullTitle}
               </h2>
               <div className="grid grid-cols-[auto_auto] items-center gap-x-[min(6rem,5vw)]">
-                <NeonHand lit={ALL_LIT} palm color="magenta" style={{ height: 'min(30rem, 26vw)', aspectRatio: HAND_ASPECT }} />
+                <NeonHand lit={ALL_LIT} palm style={{ height: 'min(30rem, 26vw)', aspectRatio: HAND_ASPECT }} />
                 <div className="grid w-fit grid-cols-[auto_min(42rem,44vw)] items-center gap-x-10 gap-y-5">
                   {ranking.entries.map((entry, index) => (
                     <React.Fragment key={index}>

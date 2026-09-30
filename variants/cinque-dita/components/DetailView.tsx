@@ -5,7 +5,7 @@ import { FitInput } from './FitInput';
 import { NeonHand } from './NeonHand';
 import { HAND_ASPECT, HAND_VIEWBOX } from '../hand';
 import { neonTube } from './neon';
-import { easeOutQuint, neonSpring } from '../motionConfig';
+import { easeOutQuint, morphTransition, neonSpring } from '../motionConfig';
 
 interface DetailViewProps {
   ranking: Ranking;
@@ -17,7 +17,7 @@ interface DetailViewProps {
 
 const listVariants = {
   hidden: {},
-  visible: { transition: { staggerChildren: 0.08, delayChildren: 0.45 } },
+  visible: { transition: { staggerChildren: 0.06, delayChildren: 0.3 } },
 };
 
 const rowVariants = {
@@ -58,6 +58,7 @@ export const DetailView: React.FC<DetailViewProps> = ({ ranking, boxId, onTitleC
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const saveButtonRef = useRef<HTMLButtonElement>(null);
   const isSaving = phase !== 'idle';
+  const [isTravelling, setIsTravelling] = useState(boxId !== null);
   const isMagenta = phase === 'magenta' || phase === 'center';
 
   // Solo al cambio di classifica: modificare il titolo cambia `ranking` e cancellerebbe le voci non salvate.
@@ -66,6 +67,12 @@ export const DetailView: React.FC<DetailViewProps> = ({ ranking, boxId, onTitleC
   }, [ranking.id]);
 
   useEffect(() => () => timeoutsRef.current.forEach(window.clearTimeout), []);
+
+  // Riserva: se la trasformazione non parte (niente anello di provenienza), il tubo si accende lo stesso.
+  useEffect(() => {
+    const timeout = window.setTimeout(() => setIsTravelling(false), 900);
+    return () => window.clearTimeout(timeout);
+  }, []);
 
   const handleInputChange = (index: number, value: string) => {
     setEntries(prevEntries => prevEntries.map((entry, entryIndex) => entryIndex === index ? value : entry));
@@ -119,9 +126,14 @@ export const DetailView: React.FC<DetailViewProps> = ({ ranking, boxId, onTitleC
           layoutId={boxId === null ? undefined : `box-${boxId}`}
           className="flex min-h-[10rem] w-full items-center justify-center px-16 py-8 text-center"
           style={{ borderRadius: 9999 }}
-          initial={false}
-          animate={{ boxShadow: neonTube(isMagenta ? 'magenta' : 'cyan') }}
-          transition={{ layout: neonSpring, boxShadow: { duration: 0.5 } }}
+          // Arriva dall'anello "in viaggio" (filo sottile) e si riaccende pieno a trasformazione finita.
+          initial={{ boxShadow: neonTube('cyan', true) }}
+          animate={{ boxShadow: neonTube(isMagenta ? 'magenta' : 'cyan', isTravelling) }}
+          transition={{ layout: morphTransition, boxShadow: { duration: isTravelling ? 0.12 : 0.5 } }}
+          onLayoutAnimationComplete={() => setIsTravelling(false)}
+          layoutCrossfade={false}
+          // Tornando al tabellone questo tubo sparisce subito: al suo posto parte l'anello (un tubo solo, non due).
+          exit={{ opacity: 0, transition: { duration: 0 } }}
         >
           <AnimatePresence mode="wait">
             {isEditingTitle ? (
@@ -144,7 +156,6 @@ export const DetailView: React.FC<DetailViewProps> = ({ ranking, boxId, onTitleC
             ) : (
               <motion.h1
                 key="title-display"
-                layout="position"
                 className={`${titleClasses} ${isMagenta ? 'cd-glow-magenta' : 'cd-glow'} cursor-text`}
                 title="Doppio click per modificare"
                 onDoubleClick={() => !isSaving && setIsEditingTitle(true)}
@@ -152,7 +163,8 @@ export const DetailView: React.FC<DetailViewProps> = ({ ranking, boxId, onTitleC
                 animate={{ opacity: 1 }}
                 // Uscita rapida: il campo di modifica compare solo dopo (mode="wait").
                 exit={{ opacity: 0, transition: { duration: 0.12 } }}
-                transition={{ duration: 0.7, ease: easeOutQuint, delay: 0.4 }}
+                // Compare quando il tubo ha quasi finito di allargarsi: dentro una forma che si stira verrebbe deformato.
+                transition={{ duration: 0.45, ease: easeOutQuint, delay: 0.55 }}
               >
                 {ranking.fullTitle || 'Titolo classifica'}
               </motion.h1>
@@ -164,11 +176,17 @@ export const DetailView: React.FC<DetailViewProps> = ({ ranking, boxId, onTitleC
       <div className="relative w-full" style={{ height: BLOCK_HEIGHT }}>
         <div className="mx-auto grid h-full w-fit grid-cols-[auto_auto] items-center gap-x-[min(7rem,6vw)]">
           {/* Posto della mano: resta anche quando la mano va al centro, così le righe non si spostano. */}
-          <div style={{ height: HAND_HEIGHT, aspectRatio: HAND_ASPECT }}>
+          {/* Entra insieme alle righe, a trasformazione del titolo quasi finita (non sopra la schermata che esce). */}
+          <motion.div
+            style={{ height: HAND_HEIGHT, aspectRatio: HAND_ASPECT }}
+            initial={{ opacity: 0, x: -24 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.7, ease: easeOutQuint, delay: 0.3 }}
+          >
             {phase !== 'center' && (
-              <NeonHand layoutId="cd-hand" lit={lit} palm color={isMagenta ? 'magenta' : 'cyan'} warm={warm} className="h-full w-full" />
+              <NeonHand layoutId="cd-hand" lit={lit} palm={lit[0]} warm={warm} className="h-full w-full" />
             )}
-          </div>
+          </motion.div>
 
           <motion.div
             initial={false}
@@ -228,22 +246,25 @@ export const DetailView: React.FC<DetailViewProps> = ({ ranking, boxId, onTitleC
 
         {/* Il batti cinque: la mano al centro, lo scatto in avanti, i raggi, la scritta. */}
         {phase === 'center' && (
-          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-6">
+          // Più in basso del blocco delle righe: i raggi sopra la mano non devono toccare il titolo
+          // (sotto c'è spazio, i tasti Indietro/Salva sono già spariti).
+          <div className="pointer-events-none absolute inset-x-0 flex flex-col items-center justify-center gap-6" style={{ top: '4.5rem', bottom: '-4.5rem' }}>
             <motion.div
               className="relative"
               style={{ height: 'min(30rem, 40vh)', aspectRatio: HAND_ASPECT }}
               animate={{ scale: [1, 1, 1.16, 1], rotate: [0, 0, -6, 0] }}
               transition={{ duration: 1.3, times: [0, 0.62, 0.74, 1], ease: 'easeOut' }}
             >
-              <NeonHand layoutId="cd-hand" lit={[true, true, true, true, true]} palm color="magenta" className="h-full w-full" />
+              <NeonHand layoutId="cd-hand" lit={[true, true, true, true, true]} palm className="h-full w-full" />
               <svg viewBox={HAND_VIEWBOX} overflow="visible" className="absolute inset-0 h-full w-full" fill="none" strokeLinecap="round" aria-hidden="true">
                 {BURST.map((d, index) => (
                   <motion.path
                     key={index}
                     d={d}
-                    stroke="rgb(255, 100, 196)"
+                    // I raggi stanno sopra le dita: prendono l'azzurro della parte alta del logo.
+                    stroke="#00cdff"
                     strokeWidth={15}
-                    style={{ filter: 'drop-shadow(0 0 6px rgb(255, 100, 196))' }}
+                    style={{ filter: 'drop-shadow(0 0 6px #00cdff)' }}
                     initial={{ pathLength: 0, opacity: 0 }}
                     animate={{ pathLength: [0, 1, 1], opacity: [0, 1, 0] }}
                     transition={{ duration: 0.9, delay: 0.95, times: [0, 0.3, 1], ease: 'easeOut' }}
@@ -265,9 +286,10 @@ export const DetailView: React.FC<DetailViewProps> = ({ ranking, boxId, onTitleC
 
       <motion.footer
         className="mt-12 flex w-full max-w-[82rem] items-center justify-between"
-        initial={false}
+        initial={{ opacity: 0 }}
         animate={{ opacity: isSaving ? 0 : 1 }}
-        transition={{ duration: 0.3 }}
+        // Entra con le righe (non sopra la schermata che se ne va), esce subito al salvataggio.
+        transition={{ duration: 0.4, delay: isSaving ? 0 : 0.55 }}
       >
         <button
           type="button"

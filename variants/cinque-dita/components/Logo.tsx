@@ -1,5 +1,5 @@
 import React from 'react';
-import { HAND_PATH } from '../hand';
+import { HAND_GRADIENT, HAND_PATH } from '../hand';
 
 export const Logo: React.FC = () => (
     <svg id="Livello_3" data-name="Livello 3" xmlns="http://www.w3.org/2000/svg" xmlnsXlink="http://www.w3.org/1999/xlink" viewBox="0 0 2000 1000">
@@ -13,19 +13,8 @@ export const Logo: React.FC = () => (
         fill: #00d0ff;
       }
     `}</style>
-            <linearGradient id="Sfumatura_senza_nome_8" data-name="Sfumatura senza nome 8" x1="783.55" y1="193.13" x2="815.56" y2="766.13" gradientUnits="userSpaceOnUse">
-            <stop offset=".46" stopColor="#00cdff"/>
-            <stop offset=".46" stopColor="#09c9fc"/>
-            <stop offset=".47" stopColor="#37b6f2"/>
-            <stop offset=".48" stopColor="#62a4e8"/>
-            <stop offset=".49" stopColor="#8795df"/>
-            <stop offset=".5" stopColor="#a887d8"/>
-            <stop offset=".51" stopColor="#c37cd1"/>
-            <stop offset=".53" stopColor="#d973cc"/>
-            <stop offset=".54" stopColor="#ea6cc8"/>
-            <stop offset=".56" stopColor="#f667c6"/>
-            <stop offset=".59" stopColor="#fd64c4"/>
-            <stop offset=".67" stopColor="#ff64c4"/>
+            <linearGradient id="Sfumatura_senza_nome_8" data-name="Sfumatura senza nome 8" x1={HAND_GRADIENT.x1} y1={HAND_GRADIENT.y1} x2={HAND_GRADIENT.x2} y2={HAND_GRADIENT.y2} gradientUnits="userSpaceOnUse">
+            {HAND_GRADIENT.stops.map(([offset, color], index) => <stop key={index} offset={offset} stopColor={color} />)}
             </linearGradient>
         </defs>
         <path className="cls-1" d={HAND_PATH} />

@@ -21,5 +21,9 @@ Pezzi:
   al centro con colpo e raggi, "Classifica completata!")
 - configurazione: la mano fa da avanzamento (palmo = ospite, dita = classifiche)
 - salvaschermo: logo e classifiche completate con la mano magenta, deriva lenta anti-bruciatura
+- aggiornamento 2026-09-30: mano sempre con i colori del logo (azzurro sopra, rosa sotto), dita tagliate dove
+  sono ancora azzurre e palmo dove è già rosa, giunture alla base di indice e mignolo accese solo con dito + palmo;
+  palmo acceso insieme al pollice (posizione 1); batti cinque più in basso (non tocca il titolo); passaggio
+  anello ↔ titolo fluido (numero nascosto durante la trasformazione, tubo sottile "in viaggio", un solo tubo)
 - tiene i fix: flushSync nei cambi schermata, niente gesture durante la trasformazione, focus del titolo,
   voci lunghe che si rimpiccioliscono (FitInput, misura di layout e non a schermo)

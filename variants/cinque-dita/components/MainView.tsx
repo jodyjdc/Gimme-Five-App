@@ -5,7 +5,7 @@ import { Logo } from './Logo';
 import { MainSettingsMenu } from './MainSettingsMenu';
 import { FitText } from './FitInput';
 import { neonTube } from './neon';
-import { IGNITION, easeOutQuint, neonSpring } from '../motionConfig';
+import { IGNITION, easeOutQuint, morphTransition, neonSpring } from '../motionConfig';
 
 interface MainViewProps {
   guestName: string;
@@ -55,6 +55,7 @@ const Ring: React.FC<{
   // Mentre l'anello si trasforma (layoutId) niente hover/tap: Motion somma lo zoom e a fine corsa scatta.
   const [isMorphing, setIsMorphing] = useState(false);
   const isGestureOff = isInteractionLocked || isMorphing;
+  const color = isDimmed ? null : isDone ? 'magenta' : 'cyan';
 
   return (
     <motion.div className="relative" variants={playIntro ? tileVariants : undefined}>
@@ -67,24 +68,29 @@ const Ring: React.FC<{
         onKeyDown={(event) => (event.key === 'Enter' || event.key === ' ') && !isInteractionLocked && onSelect(box.boxId)}
         className="flex aspect-square w-full cursor-pointer items-center justify-center px-6 text-center text-white focus:outline-none focus-visible:outline-2 focus-visible:outline-offset-8 focus-visible:outline-white"
         style={{ borderRadius: RADIUS }}
-        initial={false}
-        // Scelto un anello: gli altri si spengono, il suo sfarfalla e resta acceso.
+        // Tornando dalla classifica gli anelli partono "in viaggio" (filo sottile) e si riaccendono pieni.
+        initial={playIntro ? false : { boxShadow: neonTube(color, true) }}
+        // Scelto un anello: gli altri si spengono, il suo si avvicina appena e poi si allarga nel titolo.
         animate={{
-          boxShadow: neonTube(isDimmed ? null : isDone ? 'magenta' : 'cyan'),
+          boxShadow: neonTube(color, isMorphing),
           scale: isSelected ? 1.06 : 1,
-          opacity: isSelected ? [1, 0.35, 1, 0.7, 1] : 1,
         }}
-        transition={{ ...neonSpring, boxShadow: { duration: 0.5 }, opacity: { duration: 0.45 }, layout: neonSpring }}
+        transition={{ ...neonSpring, boxShadow: { duration: isMorphing ? 0.12 : 0.35 }, layout: morphTransition }}
+        // Niente dissolvenza tra il titolo che se ne va e l'anello che arriva: si vede un solo tubo.
+        layoutCrossfade={false}
+        exit={{ opacity: 0, transition: { duration: 0 } }}
         whileHover={isGestureOff ? undefined : { scale: 1.05 }}
         whileTap={isGestureOff ? undefined : { scale: 0.96 }}
         onLayoutAnimationStart={() => setIsMorphing(true)}
         onLayoutAnimationComplete={() => setIsMorphing(false)}
       >
+        {/* Il numero sparisce prima che l'anello si allarghi (e riappare solo a trasformazione finita):
+            dentro una forma che si stira verrebbe deformato. */}
         <motion.span
           className="flex w-full justify-center"
-          initial={false}
-          animate={{ opacity: isDimmed ? 0.3 : 1 }}
-          transition={{ duration: 0.4 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: isSelected || isMorphing ? 0 : isDimmed ? 0.3 : 1 }}
+          transition={{ duration: isSelected || isMorphing ? 0.15 : 0.4 }}
         >
           {isDone && ranking ? (
             <FitText text={ranking.keyword} minScale={0.4} className="cd-glow-magenta w-full justify-center text-6xl font-semibold leading-none" />
@@ -137,7 +143,7 @@ export const MainView: React.FC<MainViewProps> = ({
     setSelectedBoxId(boxId);
     selectTimeoutRef.current = window.setTimeout(() => {
       onSelectRanking(boxId);
-    }, 600);
+    }, 320);
   };
 
   return (

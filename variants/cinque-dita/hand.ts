@@ -8,21 +8,41 @@ export const HAND_PATH = 'M802.89,510.72c1.63,1.79,8.54,4.36,11.11,5.29,14.54,5.
 export const HAND_VIEWBOX = '530 170 525 600';
 export const HAND_ASPECT = '525 / 600';
 
+// Sfumatura del logo (azzurro sopra, rosa sotto): stesse coordinate del disegno originale.
+export const HAND_GRADIENT = {
+  x1: 783.55, y1: 193.13, x2: 815.56, y2: 766.13,
+  stops: [
+    [0.46, '#00cdff'], [0.46, '#09c9fc'], [0.47, '#37b6f2'], [0.48, '#62a4e8'], [0.49, '#8795df'], [0.5, '#a887d8'],
+    [0.51, '#c37cd1'], [0.53, '#d973cc'], [0.54, '#ea6cc8'], [0.56, '#f667c6'], [0.59, '#fd64c4'], [0.67, '#ff64c4'],
+  ] as [number, string][],
+};
+
 type Polygon = [number, number][];
 
+// Il colore segue la sfumatura del logo: l'azzurro diventa rosa tra y ≈ 455 e y ≈ 505 (sotto le dita).
+// Per non far vedere il colore "sbagliato", le dita finiscono dove sono ancora azzurre e il palmo comincia
+// dove è già rosa; in mezzo, alla base di indice e mignolo, c'è una giuntura che si accende solo quando
+// sono accesi sia il dito sia il palmo (a mano completa la sfumatura è continua, come nel logo).
 // Dita: pollice, indice, medio, anulare, mignolo. I tagli passano per il fondo degli incavi e seguono
 // lo spazio tra un dito e l'altro; il pollice è tagliato di traverso al nastro (come la giuntura tra due tubi).
 export const FINGER_ZONES: Polygon[] = [
   [[530, 500], [668, 500], [680, 566], [703, 581], [765, 604], [705, 745], [705, 790], [530, 790]],
-  [[530, 170], [766, 170], [766, 440], [530, 440]],
+  [[530, 170], [766, 170], [766, 466], [530, 470]],
   [[766, 170], [852, 170], [852, 440], [766, 440]],
   [[852, 170], [975, 170], [962, 300], [940, 400], [938, 460], [852, 460]],
-  [[975, 170], [1060, 170], [1060, 505], [935, 452], [940, 400], [962, 300]],
+  [[975, 170], [1060, 170], [1060, 450], [960, 452], [935, 452], [940, 400], [962, 300]],
 ];
 
-// Palmo: tutto il resto (fianco, base del "5", ricciolo).
+// Giunture: si accendono con il dito indicato (indice = 1, mignolo = 4) più il palmo.
+// La cima del ricciolo resta al palmo: è lilla anche nel logo, e staccarla lascerebbe un buco nel palmo acceso.
+export const JOINT_ZONES: { finger: number; zone: Polygon }[] = [
+  { finger: 1, zone: [[530, 470], [766, 466], [766, 502], [530, 504]] },
+  { finger: 4, zone: [[960, 452], [1060, 450], [1060, 486], [960, 486]] },
+];
+
+// Palmo: tutto il resto (fianco, base del "5", ricciolo), già nella parte rosa.
 export const PALM_ZONE: Polygon = [
-  [530, 440], [852, 440], [852, 460], [938, 460], [935, 452], [1060, 505],
+  [530, 504], [766, 502], [766, 440], [852, 440], [852, 460], [938, 460], [935, 452], [960, 452], [960, 486], [1060, 486],
   [1060, 790], [705, 790], [705, 745], [765, 604], [703, 581], [680, 566], [668, 500], [530, 500],
 ];
 

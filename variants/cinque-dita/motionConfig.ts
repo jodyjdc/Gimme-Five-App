@@ -13,6 +13,13 @@ export const neonSpring = {
   bounce: 0.16,
 };
 
+// Anello che diventa titolo (e ritorno): parte morbido, scorre, si posa. Durata fissa, niente rimbalzo
+// (una molla senza rimbalzo impiega molto a fermarsi del tutto e il contenuto riapparirebbe in ritardo).
+export const morphTransition = {
+  duration: 0.7,
+  ease: [0.45, 0, 0.2, 1] as [number, number, number, number],
+};
+
 // Accensione di un tubo al neon: due incertezze e poi luce piena.
 export const IGNITION = {
   opacity: [0, 0.9, 0.15, 1, 0.55, 1],
