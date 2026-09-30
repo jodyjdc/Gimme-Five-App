@@ -1,0 +1,67 @@
+@import "tailwindcss" source(none);
+
+@source "./*.tsx";
+@source "./components/**/*.tsx";
+
+@theme {
+  --font-sans: "Outfit", ui-sans-serif, system-ui, sans-serif;
+}
+
+/* Cinque dita: nero pieno (sul TV dello studio la cornice sparisce e restano solo i tubi al neon).
+   Due colori, quelli del logo: ciano = acceso / in corso, magenta = batti cinque / completato. */
+:root {
+  --cd-cyan: 0, 208, 255;
+  --cd-magenta: 255, 100, 196;
+  --cd-core: 238, 252, 255;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: #000;
+  color: #fff;
+  font-family: var(--font-sans);
+}
+
+/* Scritte bianche appena "illuminate" dai tubi vicini. */
+.cd-glow {
+  text-shadow: 0 0 0.4em rgba(var(--cd-cyan), 0.35);
+}
+
+.cd-glow-magenta {
+  text-shadow: 0 0 0.45em rgba(var(--cd-magenta), 0.55);
+}
+
+/* Campi della configurazione: tubo spento, si accende in ciano quando ci si scrive. */
+.cd-field {
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.14);
+  transition: box-shadow 0.35s ease;
+}
+
+.cd-field:focus {
+  box-shadow:
+    inset 0 0 0 1.5px rgba(var(--cd-core), 0.9),
+    inset 0 0 0 4px rgb(var(--cd-cyan)),
+    0 0 14px 2px rgba(var(--cd-cyan), 0.55),
+    inset 0 0 16px rgba(var(--cd-cyan), 0.3);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Il contenuto parte dall'alto: my-auto lo centra solo quando c'è spazio (niente tagli in finestre basse). */
+.app-safe-center {
+  justify-content: flex-start;
+}

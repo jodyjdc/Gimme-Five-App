@@ -4,12 +4,13 @@ Web app per il podcast: cinque classifiche Top 5 dell'ospite, mostrate su un TV 
 
 ## Versioni grafiche
 
-All'apertura il sito mostra la **pagina di scelta**: si sceglie una delle 5 versioni e si avvia
+All'apertura il sito mostra la **pagina di scelta**: si sceglie una delle 6 versioni e si avvia
 all'indirizzo `/?v=<versione>` (ricaricando la pagina si resta sulla stessa versione).
 Per cambiare versione: impostazioni → "Cambia versione", oppure aprire di nuovo l'indirizzo senza `?v=`.
 
 | `?v=` | Versione |
 |---|---|
+| `cinque-dita` | Cinque dita — insegne al neon nel buio: le dita della mano sono le 5 posizioni |
 | `liquid-glass` | Liquid Glass — vetro che rifrange la luce (rifrazione vera solo in Chrome/Edge) |
 | `serigrafia` | Serigrafia — poster stampato dal vivo |
 | `arcade` | Arcade — cabinato anni '80, font a pixel e suoni 8-bit |
