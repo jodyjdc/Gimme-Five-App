@@ -23,6 +23,9 @@ const displacementMap = (w: number, h: number, r: number) => {
 type GlassProps = HTMLMotionProps<'div'> & {
   /** Raggio degli angoli in px (anche per la mappa della lente). */
   radius?: number;
+  /** Lastra tonda: il raggio è metà del lato misurato, in px (non un valore enorme), così quando la lastra
+   *  si trasforma in un'altra (layoutId) gli angoli passano gradualmente da tondi a quelli dell'altra. */
+  round?: boolean;
   /** Intensità della rifrazione (px di spostamento ai bordi). */
   depth?: number;
   /** Sfocatura residua dietro il vetro (px): bassa = vetro limpido. */
@@ -30,7 +33,8 @@ type GlassProps = HTMLMotionProps<'div'> & {
 };
 
 export const Glass = forwardRef<HTMLDivElement, GlassProps>(({
-  radius = 36,
+  radius: radiusProp = 36,
+  round = false,
   depth = 70,
   frost = 3,
   className = '',
@@ -53,6 +57,7 @@ export const Glass = forwardRef<HTMLDivElement, GlassProps>(({
     return () => observer.disconnect();
   }, []);
 
+  const radius = round ? (size.w > 0 ? Math.min(size.w, size.h) / 2 : 9999) : radiusProp;
   const map = useMemo(() => (size.w > 0 && size.h > 0 ? displacementMap(size.w, size.h, Math.min(radius, size.w / 2, size.h / 2)) : ''), [size.w, size.h, radius]);
   const backdrop = map
     ? `url(#${id}) blur(${frost}px) saturate(1.35)`

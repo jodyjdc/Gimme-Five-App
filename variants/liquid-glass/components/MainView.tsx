@@ -42,8 +42,6 @@ const tileVariants = {
 // i margini negativi lo recuperano, così nome e caselle non vengono spinti giù.
 const LOGO_WIDTH = 'min(71rem, 106vh, 94vw)';
 
-// Stesso raggio per casella e pannello del titolo: la lastra cambia solo proporzioni mentre si trasforma.
-const TILE_RADIUS = 40;
 
 // ponytail: flag di modulo, l'ingresso a cascata parte solo la prima volta; tornando dal dettaglio la griglia è già lì.
 let hasPlayedGridIntro = false;
@@ -64,7 +62,8 @@ const Tile: React.FC<{
     <motion.div className="relative" variants={tileVariants}>
       <Glass
         layoutId={`box-${box.boxId}`}
-        radius={TILE_RADIUS}
+        // Casella tonda: lente circolare; trasformandosi nel titolo gli angoli passano da tondi a quelli del pannello.
+        round
         depth={120}
         frost={0}
         role="button"
