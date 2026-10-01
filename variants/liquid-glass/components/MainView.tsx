@@ -87,7 +87,7 @@ const Tile: React.FC<{
             {ranking.keyword}
           </span>
         ) : (
-          <span className="font-tight lg-text-glow text-[8.5rem] font-extralight leading-none tracking-tighter">{box.boxId}</span>
+          <span className="font-tight lg-text-glow text-[8.5rem] font-bold leading-none tracking-tight">{box.boxId}</span>
         )}
       </Glass>
     </motion.div>
