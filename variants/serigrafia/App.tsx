@@ -5,6 +5,7 @@ import { MainView } from './components/MainView';
 import { DetailView } from './components/DetailView';
 import { SetupWizard } from './components/SetupWizard';
 import { BoxAssignments, Ranking } from './types';
+import { openEpisodeFile, saveEpisodeFile, type Episode } from '../../shared/episodeFile';
 import { INITIAL_RANKINGS } from './constants';
 import { ScreensaverView } from './components/ScreensaverView';
 import { assignRankingToBox, buildRankingBoxes, selectRankingForBox } from './rankingFlow';
@@ -106,6 +107,24 @@ const App: React.FC = () => {
     setIsConfigured(false);
   };
 
+  // Ospite su file: esporta/importa ospite e classifiche (impostazioni e schermata del nome).
+  const handleExportEpisode = () => saveEpisodeFile({ guestName, guestNameSize, rankings, boxAssignments });
+  const applyEpisode = (episode: Episode) => {
+    setGuestName(episode.guestName);
+    setGuestNameSize(episode.guestNameSize);
+    setRankings(episode.rankings);
+    setBoxAssignments(episode.boxAssignments);
+    setActiveRankingId(null);
+    setActiveBoxId(null);
+    setIsConfigured(true);
+  };
+  // Dalle impostazioni sostituisce la puntata in corso: prima si chiede conferma.
+  const handleImportEpisode = () => {
+    if (window.confirm('Importare un ospite da file? La puntata in corso verrà sostituita (esportala prima, se ti serve).')) {
+      openEpisodeFile(applyEpisode);
+    }
+  };
+
   const handleGoBack = () => {
     switchScreen(() => {
       setActiveRankingId(null);
@@ -167,7 +186,7 @@ const App: React.FC = () => {
               transition={screenTransition}
             >
               {!isConfigured ? (
-                <SetupWizard onSetupComplete={handleSetupComplete} />
+                <SetupWizard onSetupComplete={handleSetupComplete} onImportEpisode={() => openEpisodeFile(applyEpisode)} />
               ) : activeRanking ? (
                   <DetailView
                     ranking={activeRanking}
@@ -189,6 +208,8 @@ const App: React.FC = () => {
                     onLogoClick={handleToggleScreensaver}
                     onResetRanking={handleResetRanking}
                     onNewEpisode={handleNewEpisode}
+                    onExportEpisode={handleExportEpisode}
+                    onImportEpisode={handleImportEpisode}
                   />
               )}
             </motion.div>

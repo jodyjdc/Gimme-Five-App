@@ -13,6 +13,8 @@ interface MainSettingsMenuProps {
   onGuestNameChange: (name: string) => void;
   onResetRanking: (id: number) => void;
   onNewEpisode: () => void;
+  onExportEpisode: () => void;
+  onImportEpisode: () => void;
 }
 
 export const MainSettingsMenu: React.FC<MainSettingsMenuProps> = ({
@@ -25,6 +27,8 @@ export const MainSettingsMenu: React.FC<MainSettingsMenuProps> = ({
   onGuestNameChange,
   onResetRanking,
   onNewEpisode,
+  onExportEpisode,
+  onImportEpisode,
 }) => {
   // "Nuova puntata" cancella tutto: serve un secondo clic entro 4 secondi per confermare.
   const [isConfirmingNewEpisode, setIsConfirmingNewEpisode] = useState(false);
@@ -153,6 +157,11 @@ export const MainSettingsMenu: React.FC<MainSettingsMenuProps> = ({
         )}
 
         <section>
+          {/* Ospite su file: salva ospite e classifiche sul computer, o ricaricane uno salvato. */}
+          <div className="mb-3 grid grid-cols-2 gap-3">
+            <button type="button" onClick={onExportEpisode} className="rounded-md border border-white/10 px-3 py-2 text-sm font-semibold text-white/80 transition-colors hover:border-cyan-300/60 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-400 w-full">Esporta ospite</button>
+            <button type="button" onClick={onImportEpisode} className="rounded-md border border-white/10 px-3 py-2 text-sm font-semibold text-white/80 transition-colors hover:border-cyan-300/60 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-400 w-full">Importa ospite</button>
+          </div>
           <button type="button" onClick={handleNewEpisode} className="rounded-md border border-white/10 px-3 py-2 text-sm font-semibold text-white/80 transition-colors hover:border-cyan-300/60 hover:text-white focus:outline-none focus:ring-2 focus:ring-cyan-400 w-full">
             {isConfirmingNewEpisode ? 'Sicuro? Clicca ancora per ricominciare' : 'Nuova puntata'}
           </button>

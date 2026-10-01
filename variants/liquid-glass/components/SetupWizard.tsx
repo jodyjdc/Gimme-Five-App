@@ -6,11 +6,13 @@ import { easeOutQuint, liquidMorphSpring } from '../motionConfig';
 
 interface SetupWizardProps {
   onSetupComplete: (guestName: string, rankings: Ranking[]) => void;
+  /** Ospite salvato su file: lo carica e salta la configurazione. */
+  onImportEpisode: () => void;
 }
 
 const inputClasses = "font-tight w-full rounded-full bg-white/[0.06] px-8 py-5 text-center text-3xl font-medium text-white caret-[var(--lg-cyan)] placeholder-white/30 shadow-[inset_0_1px_0_rgba(255,255,255,0.18),inset_0_0_0_1px_rgba(255,255,255,0.08)] transition-colors duration-300 focus:bg-white/[0.12] focus:outline-none";
 
-export const SetupWizard: React.FC<SetupWizardProps> = ({ onSetupComplete }) => {
+export const SetupWizard: React.FC<SetupWizardProps> = ({ onSetupComplete, onImportEpisode }) => {
   const [step, setStep] = useState(0); // 0: guest name, 1-5: rankings
   const [guestName, setGuestName] = useState('');
   const [rankingsData, setRankingsData] = useState<{ fullTitle: string; keyword: string }[]>(
@@ -198,6 +200,11 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onSetupComplete }) => 
       >
         {step < 5 ? 'Avanti' : 'Inizia'}
       </motion.button>
+      {step === 0 && (
+        <button type="button" onClick={onImportEpisode} className="font-tight mt-8 rounded-full px-6 py-2 text-xl font-medium text-white/50 transition-colors hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white">
+          Importa ospite da file
+        </button>
+      )}
     </div>
   );
 };

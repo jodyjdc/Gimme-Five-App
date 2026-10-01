@@ -5,9 +5,11 @@ import { broadcastTransition, easeOutQuart, quickTransition, screenTransition, s
 
 interface SetupWizardProps {
   onSetupComplete: (guestName: string, rankings: Ranking[]) => void;
+  /** Ospite salvato su file: lo carica e salta la configurazione. */
+  onImportEpisode: () => void;
 }
 
-export const SetupWizard: React.FC<SetupWizardProps> = ({ onSetupComplete }) => {
+export const SetupWizard: React.FC<SetupWizardProps> = ({ onSetupComplete, onImportEpisode }) => {
   const [step, setStep] = useState(0); // 0: guest name, 1-5: rankings
   const [guestName, setGuestName] = useState('');
   const [rankingsData, setRankingsData] = useState<{ fullTitle: string; keyword: string }[]>(
@@ -191,6 +193,11 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onSetupComplete }) => 
       >
         {step < 5 ? 'Avanti' : 'Inizia!'}
       </motion.button>
+      {step === 0 && (
+        <button type="button" onClick={onImportEpisode} className="mt-8 rounded-md px-6 py-2 text-xl font-semibold text-white/50 transition-colors hover:text-cyan-200 focus:outline-none focus:ring-2 focus:ring-cyan-400">
+          Importa ospite da file
+        </button>
+      )}
     </div>
   );
 };

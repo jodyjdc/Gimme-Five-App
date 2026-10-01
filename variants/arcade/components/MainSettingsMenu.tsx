@@ -14,6 +14,8 @@ interface MainSettingsMenuProps {
   onGuestNameChange: (name: string) => void;
   onResetRanking: (id: number) => void;
   onNewEpisode: () => void;
+  onExportEpisode: () => void;
+  onImportEpisode: () => void;
 }
 
 export const MainSettingsMenu: React.FC<MainSettingsMenuProps> = ({
@@ -26,6 +28,8 @@ export const MainSettingsMenu: React.FC<MainSettingsMenuProps> = ({
   onGuestNameChange,
   onResetRanking,
   onNewEpisode,
+  onExportEpisode,
+  onImportEpisode,
 }) => {
   // "Nuova puntata" cancella tutto: serve un secondo clic entro 4 secondi per confermare.
   const [isConfirmingNewEpisode, setIsConfirmingNewEpisode] = useState(false);
@@ -165,6 +169,11 @@ export const MainSettingsMenu: React.FC<MainSettingsMenuProps> = ({
           )}
 
           <section className="border-t-4 border-dotted border-[var(--phosphor)]/10 pt-5">
+            {/* Ospite su file: salva ospite e classifiche sul computer, o ricaricane uno salvato. */}
+            <div className="mb-3 grid grid-cols-2 gap-3">
+              <PixelButton label="ESPORTA" onClick={onExportEpisode} color="#7dff7a" textClassName="text-sm" className="w-full" />
+              <PixelButton label="IMPORTA" onClick={onImportEpisode} color="#7dff7a" textClassName="text-sm" className="w-full" />
+            </div>
             <PixelButton
               label={isConfirmingNewEpisode ? 'SICURO? CLICCA ANCORA' : 'NUOVA PUNTATA'}
               onClick={handleNewEpisode}

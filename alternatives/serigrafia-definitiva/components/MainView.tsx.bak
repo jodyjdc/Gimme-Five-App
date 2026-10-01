@@ -18,6 +18,8 @@ interface MainViewProps {
   onLogoClick: () => void;
   onResetRanking: (id: number) => void;
   onNewEpisode: () => void;
+  onExportEpisode: () => void;
+  onImportEpisode: () => void;
 }
 
 const gridVariants = {
@@ -156,6 +158,8 @@ export const MainView: React.FC<MainViewProps> = ({
   onLogoClick,
   onResetRanking,
   onNewEpisode,
+  onExportEpisode,
+  onImportEpisode,
 }) => {
   const [selectedBoxId, setSelectedBoxId] = useState<number | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -227,6 +231,8 @@ export const MainView: React.FC<MainViewProps> = ({
             onGuestNameChange={setGuestName}
             onResetRanking={onResetRanking}
             onNewEpisode={onNewEpisode}
+            onExportEpisode={onExportEpisode}
+            onImportEpisode={onImportEpisode}
           />
         )}
       </AnimatePresence>

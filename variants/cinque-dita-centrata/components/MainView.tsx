@@ -19,6 +19,8 @@ interface MainViewProps {
   onLogoClick: () => void;
   onResetRanking: (id: number) => void;
   onNewEpisode: () => void;
+  onExportEpisode: () => void;
+  onImportEpisode: () => void;
 }
 
 // Accensione in sequenza: prima il logo, poi il nome, poi gli anelli da 1 a 5.
@@ -115,6 +117,8 @@ export const MainView: React.FC<MainViewProps> = ({
   onLogoClick,
   onResetRanking,
   onNewEpisode,
+  onExportEpisode,
+  onImportEpisode,
 }) => {
   const [selectedBoxId, setSelectedBoxId] = useState<number | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -174,6 +178,8 @@ export const MainView: React.FC<MainViewProps> = ({
             onGuestNameChange={setGuestName}
             onResetRanking={onResetRanking}
             onNewEpisode={onNewEpisode}
+            onExportEpisode={onExportEpisode}
+            onImportEpisode={onImportEpisode}
           />
         )}
       </AnimatePresence>

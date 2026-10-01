@@ -8,11 +8,13 @@ import { easeOutQuint, neonSpring } from '../motionConfig';
 
 interface SetupWizardProps {
   onSetupComplete: (guestName: string, rankings: Ranking[]) => void;
+  /** Ospite salvato su file: lo carica e salta la configurazione. */
+  onImportEpisode: () => void;
 }
 
 const inputClasses = 'cd-field w-full rounded-full bg-transparent px-8 py-5 text-center text-3xl font-medium text-white caret-[rgb(0,208,255)] placeholder-white/30 focus:outline-none';
 
-export const SetupWizard: React.FC<SetupWizardProps> = ({ onSetupComplete }) => {
+export const SetupWizard: React.FC<SetupWizardProps> = ({ onSetupComplete, onImportEpisode }) => {
   const [step, setStep] = useState(0); // 0: nome ospite, 1-5: classifiche
   const [guestName, setGuestName] = useState('');
   const [rankingsData, setRankingsData] = useState<{ fullTitle: string; keyword: string }[]>(
@@ -148,6 +150,11 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onSetupComplete }) => 
       >
         {step < 5 ? 'Avanti' : 'Inizia'}
       </motion.button>
+      {step === 0 && (
+        <button type="button" onClick={onImportEpisode} className="mt-8 rounded-full px-6 py-2 text-xl font-medium text-white/50 transition-colors hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white">
+          Importa ospite da file
+        </button>
+      )}
     </div>
   );
 };

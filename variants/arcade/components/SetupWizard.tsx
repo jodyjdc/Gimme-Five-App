@@ -6,9 +6,11 @@ import { arcadeColor, pixelSteps, sound } from '../arcade';
 
 interface SetupWizardProps {
   onSetupComplete: (guestName: string, rankings: Ranking[]) => void;
+  /** Ospite salvato su file: lo carica e salta la configurazione. */
+  onImportEpisode: () => void;
 }
 
-export const SetupWizard: React.FC<SetupWizardProps> = ({ onSetupComplete }) => {
+export const SetupWizard: React.FC<SetupWizardProps> = ({ onSetupComplete, onImportEpisode }) => {
   const [step, setStep] = useState(0); // 0: guest name, 1-5: rankings
   const [guestName, setGuestName] = useState('');
   const [rankingsData, setRankingsData] = useState<{ fullTitle: string; keyword: string }[]>(
@@ -200,6 +202,9 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onSetupComplete }) => 
         color={stepColor}
         className="mt-14"
       />
+      {step === 0 && (
+        <PixelButton label="IMPORTA OSPITE DA FILE" onClick={onImportEpisode} color="#7dff7a" textClassName="text-sm" className="mt-6" />
+      )}
     </div>
   );
 };

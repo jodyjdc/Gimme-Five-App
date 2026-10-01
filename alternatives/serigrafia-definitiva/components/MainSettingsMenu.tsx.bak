@@ -13,6 +13,8 @@ interface MainSettingsMenuProps {
   onGuestNameChange: (name: string) => void;
   onResetRanking: (id: number) => void;
   onNewEpisode: () => void;
+  onExportEpisode: () => void;
+  onImportEpisode: () => void;
 }
 
 export const MainSettingsMenu: React.FC<MainSettingsMenuProps> = ({
@@ -25,6 +27,8 @@ export const MainSettingsMenu: React.FC<MainSettingsMenuProps> = ({
   onGuestNameChange,
   onResetRanking,
   onNewEpisode,
+  onExportEpisode,
+  onImportEpisode,
 }) => {
   // "Nuova puntata" cancella tutto: serve un secondo clic entro 4 secondi per confermare.
   const [isConfirmingNewEpisode, setIsConfirmingNewEpisode] = useState(false);
@@ -160,9 +164,18 @@ export const MainSettingsMenu: React.FC<MainSettingsMenuProps> = ({
         )}
 
         <section>
+          {/* Ospite su file: salva ospite e classifiche sul computer, o ricaricane uno salvato. */}
+          <div className="mb-3 grid grid-cols-2 gap-3">
+            <button type="button" onClick={onExportEpisode} className="font-anybody px-2 py-1 text-sm font-semibold uppercase tracking-[0.2em] text-[var(--ink-white)]/60 underline decoration-2 underline-offset-4 transition-colors hover:text-[var(--ink-white)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink-white)] w-full">Esporta ospite</button>
+            <button type="button" onClick={onImportEpisode} className="font-anybody px-2 py-1 text-sm font-semibold uppercase tracking-[0.2em] text-[var(--ink-white)]/60 underline decoration-2 underline-offset-4 transition-colors hover:text-[var(--ink-white)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink-white)] w-full">Importa ospite</button>
+          </div>
           <button type="button" onClick={handleNewEpisode} className="font-anybody px-2 py-1 text-sm font-semibold uppercase tracking-[0.2em] text-[var(--ink-white)]/60 underline decoration-2 underline-offset-4 transition-colors hover:text-[var(--ink-white)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink-white)] w-full">
             {isConfirmingNewEpisode ? 'Sicuro? Clicca ancora per ricominciare' : 'Nuova puntata'}
           </button>
+          {/* Torna alla pagina di scelta della versione (la puntata in corso non viene salvata). */}
+          <a href="/" className="font-anybody px-2 py-1 text-sm font-semibold uppercase tracking-[0.2em] text-[var(--ink-white)]/60 underline decoration-2 underline-offset-4 transition-colors hover:text-[var(--ink-white)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink-white)] mt-3 block w-full text-center">
+            Cambia versione
+          </a>
         </section>
       </div>
     </motion.aside>

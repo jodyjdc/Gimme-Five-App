@@ -22,12 +22,18 @@ Per cambiare versione: impostazioni → "Cambia versione", oppure aprire di nuov
 principale. Nome ospite, grandezza del nome, titoli e parole delle classifiche, "Svuota" per le
 classifiche completate, "Nuova puntata", "Cambia versione".
 
+**Ospite su file** (in ogni versione): nelle impostazioni "Esporta ospite" salva ospite e classifiche (anche
+quelle già compilate) in un file `.json` nei Download; "Importa ospite" lo ricarica. Sulla schermata del nome
+c'è "Importa ospite da file" per partire da un ospite preparato prima. Il file vale per tutte le versioni
+grafiche (codice comune in `shared/episodeFile.ts`).
+
 ## Struttura
 
 - `index.tsx` — legge `?v=` e carica solo la versione scelta (import dinamico), oppure la pagina di scelta
 - `launcher/` — pagina di scelta (`versions.ts` = elenco delle versioni)
 - `variants/<versione>/` — ogni versione è una mini-app completa (App, componenti, stili, font in `main.tsx`)
 - `public/previews/` — anteprime della pagina di scelta
+- `shared/` — codice comune a tutte le versioni (ospite su file)
 - `alternatives/` — archivio storico delle varianti (patch originali e copie `.bak`)
 
 ## Sviluppo

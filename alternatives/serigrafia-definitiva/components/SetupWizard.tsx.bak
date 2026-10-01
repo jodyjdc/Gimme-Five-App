@@ -6,12 +6,14 @@ import { easeOutQuart, printSpring } from '../motionConfig';
 
 interface SetupWizardProps {
   onSetupComplete: (guestName: string, rankings: Ranking[]) => void;
+  /** Ospite salvato su file: lo carica e salta la configurazione. */
+  onImportEpisode: () => void;
 }
 
 const inputClasses = "font-anybody w-full border-b-2 border-dashed border-[var(--ink-white)]/25 bg-transparent px-2 py-3 text-center text-3xl text-[var(--ink-white)] placeholder-[var(--ink-white)]/25 transition-colors duration-300 focus:border-solid focus:border-[var(--ink-white)]/80 focus:outline-none";
 const inputStyle = { fontVariationSettings: "'wdth' 78, 'wght' 500" };
 
-export const SetupWizard: React.FC<SetupWizardProps> = ({ onSetupComplete }) => {
+export const SetupWizard: React.FC<SetupWizardProps> = ({ onSetupComplete, onImportEpisode }) => {
   const [step, setStep] = useState(0); // 0: guest name, 1-5: rankings
   const [guestName, setGuestName] = useState('');
   const [rankingsData, setRankingsData] = useState<{ fullTitle: string; keyword: string }[]>(
@@ -202,6 +204,11 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onSetupComplete }) => 
       >
         {step < 5 ? 'Avanti' : 'Inizia!'}
       </motion.button>
+      {step === 0 && (
+        <button type="button" onClick={onImportEpisode} className="font-anybody mt-8 px-2 py-1 text-base font-semibold uppercase tracking-[0.2em] text-[var(--ink-white)]/60 underline decoration-2 underline-offset-4 transition-colors hover:text-[var(--ink-white)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink-white)]">
+          Importa ospite da file
+        </button>
+      )}
     </div>
   );
 };
