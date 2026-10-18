@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseEpisode } from './episodeFile';
+import { parseEpisode, readAutosave, writeAutosave } from './episodeFile';
 
 const ranking = (id: number, completed = false) => ({
   id,
@@ -43,5 +43,19 @@ describe('parseEpisode', () => {
     expect(episode.guestNameSize).toBe(130);
     expect(episode.rankings[0].entries).toEqual(['solo uno', '', '', '', '']);
     expect(episode.boxAssignments).toEqual({ 1: 1 });
+  });
+});
+
+describe('salvataggio automatico', () => {
+  it('rilegge puntata, schermata aperta e bozza; scarta valori impossibili', () => {
+    const store = new Map<string, string>();
+    Object.assign(globalThis, { window: { localStorage: { getItem: (k: string) => store.get(k) ?? null, setItem: (k: string, v: string) => store.set(k, v) } } });
+    const episode = parseEpisode(file());
+    writeAutosave('k', { episode, isConfigured: true, activeRankingId: 2, activeBoxId: 4, draft: ['a', '', '', '', ''] });
+    expect(readAutosave('k')).toEqual({ episode, isConfigured: true, activeRankingId: 2, activeBoxId: 4, draft: ['a', '', '', '', ''] });
+    store.set('k', store.get('k')!.replace('"activeRankingId":2', '"activeRankingId":9'));
+    expect(readAutosave('k')).toMatchObject({ activeRankingId: null, activeBoxId: null, draft: null });
+    store.set('k', 'rotto');
+    expect(readAutosave('k')).toBeNull();
   });
 });

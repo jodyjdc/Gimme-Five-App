@@ -5,7 +5,7 @@ import { MainView } from './components/MainView';
 import { DetailView } from './components/DetailView';
 import { SetupWizard } from './components/SetupWizard';
 import { BoxAssignments, Ranking } from './types';
-import { openEpisodeFile, saveEpisodeFile, type Episode } from '../../shared/episodeFile';
+import { openEpisodeFile, readAutosave, saveEpisodeFile, writeAutosave, type Episode } from '../../shared/episodeFile';
 import { INITIAL_RANKINGS } from './constants';
 import { ScreensaverView } from './components/ScreensaverView';
 import { LightField } from './components/Glass';
@@ -24,14 +24,21 @@ const screenVariants = {
 // la casella resta con gli angoli del pannello e scatta tonda alla fine. flushSync li rende subito.
 const switchScreen = (update: () => void) => flushSync(update);
 
+// Salvataggio automatico della puntata nel browser (vedi shared/episodeFile.ts).
+const AUTOSAVE_KEY = 'gimme-five:liquid-glass';
+
 const App: React.FC = () => {
-  const [isConfigured, setIsConfigured] = useState<boolean>(false);
-  const [guestName, setGuestName] = useState<string>('');
-  const [rankings, setRankings] = useState<Ranking[]>(INITIAL_RANKINGS);
-  const [guestNameSize, setGuestNameSize] = useState<number>(100);
-  const [boxAssignments, setBoxAssignments] = useState<BoxAssignments>({});
-  const [activeRankingId, setActiveRankingId] = useState<number | null>(null);
-  const [activeBoxId, setActiveBoxId] = useState<number | null>(null);
+  // Se la pagina era stata chiusa o ricaricata a metà, si riparte da lì.
+  const [saved] = useState(() => readAutosave(AUTOSAVE_KEY));
+  const [isConfigured, setIsConfigured] = useState<boolean>(saved?.isConfigured ?? false);
+  const [guestName, setGuestName] = useState<string>(saved?.episode.guestName ?? '');
+  const [rankings, setRankings] = useState<Ranking[]>(saved?.episode.rankings ?? INITIAL_RANKINGS);
+  const [guestNameSize, setGuestNameSize] = useState<number>(saved?.episode.guestNameSize ?? 100);
+  const [boxAssignments, setBoxAssignments] = useState<BoxAssignments>(saved?.episode.boxAssignments ?? {});
+  const [activeRankingId, setActiveRankingId] = useState<number | null>(saved?.activeRankingId ?? null);
+  const [activeBoxId, setActiveBoxId] = useState<number | null>(saved?.activeBoxId ?? null);
+  // Posizioni della classifica aperta non ancora salvate: servono solo a riprenderle dopo una ricarica.
+  const [draft, setDraft] = useState<string[] | null>(saved?.draft ?? null);
   const [isScreensaverActive, setIsScreensaverActive] = useState<boolean>(false);
 
   const handleSetupComplete = (name: string, newRankings: Ranking[]) => {
@@ -52,6 +59,7 @@ const App: React.FC = () => {
     switchScreen(() => {
       setActiveRankingId(selectedRanking.id);
       setActiveBoxId(boxId);
+      setDraft(null);
     });
   };
 
@@ -69,6 +77,7 @@ const App: React.FC = () => {
       );
       setActiveRankingId(null);
       setActiveBoxId(null);
+      setDraft(null);
     });
   };
 
@@ -105,6 +114,7 @@ const App: React.FC = () => {
     setBoxAssignments({});
     setActiveRankingId(null);
     setActiveBoxId(null);
+    setDraft(null);
     setIsConfigured(false);
   };
 
@@ -117,6 +127,7 @@ const App: React.FC = () => {
     setBoxAssignments(episode.boxAssignments);
     setActiveRankingId(null);
     setActiveBoxId(null);
+    setDraft(null);
     setIsConfigured(true);
   };
   // Dalle impostazioni sostituisce la puntata in corso: prima si chiede conferma.
@@ -130,6 +141,7 @@ const App: React.FC = () => {
     switchScreen(() => {
       setActiveRankingId(null);
       setActiveBoxId(null);
+      setDraft(null);
     });
   }
 
@@ -144,6 +156,37 @@ const App: React.FC = () => {
   useEffect(() => {
     window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
   }, [screenKey]);
+
+  useEffect(() => {
+    writeAutosave(AUTOSAVE_KEY, {
+      episode: { guestName, guestNameSize, rankings, boxAssignments },
+      isConfigured,
+      activeRankingId,
+      activeBoxId,
+      draft,
+    });
+  }, [guestName, guestNameSize, rankings, boxAssignments, isConfigured, activeRankingId, activeBoxId, draft]);
+
+  // Schermo sempre acceso finché la pagina è aperta (in una chiacchierata lunga non si tocca niente e il
+  // computer andrebbe in standby). Il browser toglie il blocco quando la scheda va in secondo piano:
+  // tornando in primo piano lo si richiede.
+  useEffect(() => {
+    let lock: { release: () => Promise<void> } | null = null;
+    const request = async () => {
+      try {
+        lock = await (navigator as Navigator & { wakeLock?: { request: (type: 'screen') => Promise<{ release: () => Promise<void> }> } }).wakeLock?.request('screen') ?? null;
+      } catch {
+        // Non supportato o negato: lo schermo segue le impostazioni del computer.
+      }
+    };
+    const onVisible = () => document.visibilityState === 'visible' && request();
+    request();
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      lock?.release().catch(() => {});
+    };
+  }, []);
   
   return (
     <MotionConfig reducedMotion="user">
@@ -193,6 +236,8 @@ const App: React.FC = () => {
                     ranking={activeRanking}
                     boxId={activeBoxId}
                     onTitleChange={(title) => handleUpdateRankingMeta(activeRanking.id, 'fullTitle', title)}
+                    initialEntries={draft}
+                    onDraftChange={setDraft}
                     onSave={handleSaveRanking}
                     onBack={handleGoBack}
                   />

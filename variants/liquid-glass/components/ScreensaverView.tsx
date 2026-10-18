@@ -26,6 +26,18 @@ export const ScreensaverView: React.FC<ScreensaverViewProps> = ({ rankings, onEx
     return () => window.clearInterval(interval);
   }, [slideCount]);
 
+  // Qualsiasi tasto chiude il salvaschermo (come il clic). Il tasto si ferma qui: non deve anche aprire
+  // una casella o riaprire il salvaschermo nella schermata sotto.
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      onExit();
+    };
+    window.addEventListener('keydown', handleKeyDown, true);
+    return () => window.removeEventListener('keydown', handleKeyDown, true);
+  }, [onExit]);
+
   const ranking = slide > 0 ? completed[slide - 1] : null;
 
   return (

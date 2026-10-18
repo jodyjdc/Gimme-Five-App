@@ -27,6 +27,15 @@ quelle già compilate) in un file `.json` nei Download; "Importa ospite" lo rica
 c'è "Importa ospite da file" per partire da un ospite preparato prima. Il file vale per tutte le versioni
 grafiche (codice comune in `shared/episodeFile.ts`).
 
+**Liquid Glass, pensata per la registrazione:**
+- salvataggio automatico nel browser: se la pagina si ricarica o si chiude, riparte da dov'era (anche dalla
+  classifica aperta con le posizioni non ancora salvate); "Nuova puntata" ricomincia da zero
+- lo schermo non va in standby finché la pagina è aperta
+- tasti rapidi: 1–5 aprono le caselle, S il salvaschermo (un tasto qualsiasi lo chiude), Invio riga successiva,
+  ⌘/Ctrl+Invio salva, Esc esce dalla riga e poi torna indietro (promemoria nelle impostazioni)
+
+In tutte le versioni: se dopo una pubblicazione la pagina aperta non trova più i suoi file, si ricarica da sola.
+
 ## Struttura
 
 - `index.tsx` — legge `?v=` e carica solo la versione scelta (import dinamico), oppure la pagina di scelta

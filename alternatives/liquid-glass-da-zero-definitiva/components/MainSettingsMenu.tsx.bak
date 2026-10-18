@@ -157,6 +157,18 @@ export const MainSettingsMenu: React.FC<MainSettingsMenuProps> = ({
           </section>
         )}
 
+        {/* Promemoria dei tasti rapidi (strumento dell'host, non va in onda). */}
+        <section>
+          <h3 className="font-tight mb-2 text-sm font-medium text-white/65">Tasti rapidi</h3>
+          <dl className="font-tight grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm text-white/80">
+            <dt className="font-semibold text-white">1 – 5</dt><dd>apre la casella</dd>
+            <dt className="font-semibold text-white">S</dt><dd>salvaschermo (un tasto qualsiasi lo chiude)</dd>
+            <dt className="font-semibold text-white">Invio</dt><dd>riga successiva, dall'ultima va su Salva</dd>
+            <dt className="font-semibold text-white">⌘/Ctrl + Invio</dt><dd>salva la classifica</dd>
+            <dt className="font-semibold text-white">Esc</dt><dd>esce dalla riga, di nuovo: torna indietro</dd>
+          </dl>
+        </section>
+
         <section>
           {/* Ospite su file: salva ospite e classifiche sul computer, o ricaricane uno salvato. */}
           <div className="mb-3 grid grid-cols-2 gap-3">

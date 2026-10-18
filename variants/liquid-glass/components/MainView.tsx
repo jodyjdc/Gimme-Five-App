@@ -81,7 +81,18 @@ const Tile: React.FC<{
         whileTap={isGestureOff ? undefined : { scale: 0.96 }}
         onLayoutAnimationStart={() => setIsMorphing(true)}
         onLayoutAnimationComplete={() => setIsMorphing(false)}
+        // Una lastra sola mentre si trasforma (niente dissolvenza con il pannello del titolo).
+        layoutCrossfade={false}
+        exit={{ opacity: 0, transition: { duration: 0 } }}
       >
+        {/* Il contenuto sparisce appena si sceglie la casella e riappare solo a trasformazione finita:
+            dentro una lastra che si stira verrebbe deformato. */}
+        <motion.span
+          className="block w-full"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: isSelected || isMorphing ? 0 : 1 }}
+          transition={{ duration: isSelected || isMorphing ? 0.15 : 0.4 }}
+        >
         {ranking?.completed ? (
           <span className={`${keywordSizeClass(ranking.keyword)} font-tight lg-text-glow break-words font-semibold leading-[1.05] tracking-tight`}>
             {ranking.keyword}
@@ -89,6 +100,7 @@ const Tile: React.FC<{
         ) : (
           <span className="font-tight lg-text-glow text-[8.5rem] font-bold leading-none tracking-tight">{box.boxId}</span>
         )}
+        </motion.span>
       </Glass>
     </motion.div>
   );
@@ -145,8 +157,27 @@ export const MainView: React.FC<MainViewProps> = ({
     setSelectedBoxId(boxId);
     selectTimeoutRef.current = window.setTimeout(() => {
       onSelectRanking(boxId);
-    }, 550);
+    }, 380);
   };
+
+  // Tasti rapidi (dal portatile, senza mirare col mouse): 1-5 aprono le caselle, S il salvaschermo.
+  // Non valgono mentre si scrive (nome ospite, impostazioni) o con le impostazioni aperte.
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (isSettingsOpen || isEditingName || event.metaKey || event.ctrlKey || event.altKey) return;
+      if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) return;
+      if (/^[1-5]$/.test(event.key)) {
+        event.preventDefault();
+        handleSelectBox(Number(event.key));
+      } else if (event.key === 's' || event.key === 'S') {
+        event.preventDefault();
+        onLogoClick();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  });
 
   return (
     <div className="relative w-full h-full flex flex-col items-center justify-center py-2">

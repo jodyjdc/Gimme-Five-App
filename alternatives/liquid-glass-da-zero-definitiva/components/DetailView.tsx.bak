@@ -11,6 +11,10 @@ interface DetailViewProps {
   onTitleChange: (title: string) => void;
   onSave: (id: number, entries: string[]) => void;
   onBack: () => void;
+  /** Posizioni non salvate da riprendere (dopo una ricarica della pagina). */
+  initialEntries?: string[] | null;
+  /** Ogni modifica alle posizioni, per il salvataggio automatico. */
+  onDraftChange?: (entries: string[]) => void;
 }
 
 const listVariants = {
@@ -38,7 +42,7 @@ const FILL_STEP = 0.12;
 const CARD_AT = 4 * FILL_STEP + 0.4;
 const SAVE_DELAY_MS = (CARD_AT + 1.9) * 1000;
 
-export const DetailView: React.FC<DetailViewProps> = ({ ranking, boxId, onTitleChange, onSave, onBack }) => {
+export const DetailView: React.FC<DetailViewProps> = ({ ranking, boxId, onTitleChange, onSave, onBack, initialEntries, onDraftChange }) => {
   const [entries, setEntries] = useState<string[]>(['', '', '', '', '']);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
   const [focusedIndex, setFocusedIndex] = useState<number | null>(null);
@@ -49,7 +53,7 @@ export const DetailView: React.FC<DetailViewProps> = ({ ranking, boxId, onTitleC
 
   // Solo al cambio di classifica: modificare il titolo cambia `ranking` e cancellerebbe le voci non salvate.
   useEffect(() => {
-    setEntries(ranking.entries);
+    setEntries(initialEntries ?? ranking.entries);
   }, [ranking.id]);
 
   useEffect(() => {
@@ -62,10 +66,27 @@ export const DetailView: React.FC<DetailViewProps> = ({ ranking, boxId, onTitleC
   }, []);
 
   const handleInputChange = (index: number, value: string) => {
-    setEntries(prevEntries =>
-      prevEntries.map((entry, entryIndex) => entryIndex === index ? value : entry)
-    );
+    const next = entries.map((entry, entryIndex) => entryIndex === index ? value : entry);
+    setEntries(next);
+    onDraftChange?.(next);
   };
+
+  // Tasti rapidi: Esc toglie il cursore dalla riga (un secondo Esc torna al tabellone), Cmd/Ctrl+Invio salva.
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (isSaving || isEditingTitle) return;
+      if (event.key === 'Escape') {
+        const active = document.activeElement;
+        if (active instanceof HTMLElement && active !== document.body) active.blur();
+        else onBack();
+      } else if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
+        event.preventDefault();
+        handleSaveClick();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  });
 
   // Invio passa alla riga successiva; dall'ultima va su Salva.
   const handleEntryKeyDown = (index: number, event: React.KeyboardEvent<HTMLInputElement>) => {
@@ -114,6 +135,10 @@ export const DetailView: React.FC<DetailViewProps> = ({ ranking, boxId, onTitleC
           frost={0}
           className="flex min-h-[10rem] w-full items-center justify-center px-14 py-10 text-center"
           transition={{ layout: liquidMorphSpring }}
+          // Una lastra sola: niente dissolvenza tra pannello e casella, e tornando al tabellone questa sparisce
+          // subito (al suo posto parte la casella).
+          layoutCrossfade={false}
+          exit={{ opacity: 0, transition: { duration: 0 } }}
         >
           <AnimatePresence mode="wait">
             {isEditingTitle ? (
@@ -136,7 +161,6 @@ export const DetailView: React.FC<DetailViewProps> = ({ ranking, boxId, onTitleC
             ) : (
               <motion.h1
                 key="title-display"
-                layout="position"
                 className={`${titleClasses} cursor-text`}
                 title="Doppio click per modificare"
                 onDoubleClick={() => setIsEditingTitle(true)}
@@ -144,7 +168,8 @@ export const DetailView: React.FC<DetailViewProps> = ({ ranking, boxId, onTitleC
                 animate={{ opacity: 1, filter: 'blur(0px)' }}
                 // Uscita rapida: il campo di modifica compare solo dopo (mode="wait").
                 exit={{ opacity: 0, transition: { duration: 0.12 } }}
-                transition={{ duration: 0.8, ease: easeOutQuint, delay: 0.35 }}
+                // Entra quando la lastra ha quasi finito di allargarsi: dentro una forma che si stira verrebbe deformato.
+                transition={{ duration: 0.6, ease: easeOutQuint, delay: 0.6 }}
               >
                 {ranking.fullTitle || 'Titolo classifica'}
               </motion.h1>
@@ -238,7 +263,13 @@ export const DetailView: React.FC<DetailViewProps> = ({ ranking, boxId, onTitleC
       </motion.main>
       </motion.div>
 
-      <footer className="mt-14 flex w-full items-center justify-between">
+      {/* Entra con le righe, non sopra la schermata che se ne va. */}
+      <motion.footer
+        className="mt-14 flex w-full items-center justify-between"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5, delay: 0.6 }}
+      >
         <button
           type="button"
           onClick={onBack}
@@ -264,7 +295,7 @@ export const DetailView: React.FC<DetailViewProps> = ({ ranking, boxId, onTitleC
         >
           Salva
         </Glass>
-      </footer>
+      </motion.footer>
 
       {/* Lastra finale al centro: arriva come una goccia che si posa. */}
       <AnimatePresence>

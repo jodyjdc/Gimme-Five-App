@@ -100,3 +100,43 @@ export const openEpisodeFile = (onLoad: (episode: Episode) => void) => {
   };
   input.click();
 };
+
+// Salvataggio automatico nel browser: se la pagina si ricarica o si chiude durante la registrazione,
+// la puntata riparte da dov'era (schermata aperta e posizioni che si stavano scrivendo comprese).
+export interface Autosave {
+  episode: Episode;
+  isConfigured: boolean;
+  activeRankingId: number | null;
+  activeBoxId: number | null;
+  /** Posizioni scritte nella classifica aperta e non ancora salvate. */
+  draft: string[] | null;
+}
+
+const toPosition = (value: unknown) => (typeof value === 'number' && Number.isInteger(value) && value >= 1 && value <= 5 ? value : null);
+
+export const readAutosave = (key: string): Autosave | null => {
+  try {
+    const text = window.localStorage.getItem(key);
+    if (!text) return null;
+    const raw = JSON.parse(text) as Record<string, unknown>;
+    const draft = Array.isArray(raw.draft) && raw.draft.length === 5 && raw.draft.every(isString) ? raw.draft : null;
+    const activeRankingId = toPosition(raw.activeRankingId);
+    return {
+      episode: parseEpisode(text),
+      isConfigured: raw.isConfigured === true,
+      activeRankingId,
+      activeBoxId: activeRankingId === null ? null : toPosition(raw.activeBoxId),
+      draft: activeRankingId === null ? null : draft,
+    };
+  } catch {
+    return null;
+  }
+};
+
+export const writeAutosave = (key: string, { episode, ...state }: Autosave) => {
+  try {
+    window.localStorage.setItem(key, JSON.stringify({ formato: FORMAT, versione: 1, ...episode, ...state }));
+  } catch {
+    // Spazio del browser pieno o bloccato: si continua senza salvataggio automatico.
+  }
+};
