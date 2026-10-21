@@ -130,6 +130,12 @@ const App: React.FC = () => {
     setDraft(null);
     setIsConfigured(true);
   };
+  // Archivio ospiti: dalle impostazioni un ospite salvato prende il posto della puntata in corso (con conferma).
+  const handleLoadArchived = (episode: Episode) => {
+    if (window.confirm(`Caricare ${episode.guestName || 'questo ospite'} dall'archivio? La puntata in corso verrà sostituita (salvala prima, se ti serve).`)) {
+      applyEpisode(episode);
+    }
+  };
   // Dalle impostazioni sostituisce la puntata in corso: prima si chiede conferma.
   const handleImportEpisode = () => {
     if (window.confirm('Importare un ospite da file? La puntata in corso verrà sostituita (esportala prima, se ti serve).')) {
@@ -230,7 +236,7 @@ const App: React.FC = () => {
               transition={screenTransition}
             >
               {!isConfigured ? (
-                <SetupWizard onSetupComplete={handleSetupComplete} onImportEpisode={() => openEpisodeFile(applyEpisode)} />
+                <SetupWizard onSetupComplete={handleSetupComplete} onImportEpisode={() => openEpisodeFile(applyEpisode)} onLoadEpisode={applyEpisode} />
               ) : activeRanking ? (
                   <DetailView
                     ranking={activeRanking}
@@ -256,6 +262,8 @@ const App: React.FC = () => {
                     onNewEpisode={handleNewEpisode}
                     onExportEpisode={handleExportEpisode}
                     onImportEpisode={handleImportEpisode}
+                    getEpisode={() => ({ guestName, guestNameSize, rankings, boxAssignments })}
+                    onLoadEpisode={handleLoadArchived}
                   />
               )}
             </motion.div>

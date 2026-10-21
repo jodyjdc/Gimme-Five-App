@@ -27,6 +27,12 @@ quelle già compilate) in un file `.json` nei Download; "Importa ospite" lo rica
 c'è "Importa ospite da file" per partire da un ospite preparato prima. Il file vale per tutte le versioni
 grafiche (codice comune in `shared/episodeFile.ts`).
 
+**Archivio ospiti** (in ogni versione): nelle impostazioni "Salva nell'archivio" tiene ospite e classifiche nella
+memoria del browser (un ospite con lo stesso nome viene aggiornato, non duplicato); sotto c'è l'elenco con
+"Carica" ed "Elimina". Gli ospiti salvati compaiono anche sulla schermata iniziale, da caricare con un clic.
+L'archivio è unico per tutte le versioni grafiche ma resta in quel browser su quel computer: per spostarlo
+altrove si usa "Esporta ospite" (codice in `shared/archive.ts`).
+
 **Liquid Glass, pensata per la registrazione:**
 - salvataggio automatico nel browser: se la pagina si ricarica o si chiude, riparte da dov'era (anche dalla
   classifica aperta con le posizioni non ancora salvate); "Nuova puntata" ricomincia da zero

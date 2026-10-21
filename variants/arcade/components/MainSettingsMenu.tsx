@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import type { Episode } from '../../../shared/episodeFile';
+import { archiveLabel, useArchive } from '../../../shared/archive';
 import { motion } from 'motion/react';
 import { Ranking } from '../types';
 import { PixelButton, PixelInput, PixelText } from './Pixel';
@@ -16,6 +18,9 @@ interface MainSettingsMenuProps {
   onNewEpisode: () => void;
   onExportEpisode: () => void;
   onImportEpisode: () => void;
+  /** Ospite e classifiche come sono ora (per salvarli nell'archivio). */
+  getEpisode: () => Episode;
+  onLoadEpisode: (episode: Episode) => void;
 }
 
 export const MainSettingsMenu: React.FC<MainSettingsMenuProps> = ({
@@ -30,7 +35,21 @@ export const MainSettingsMenu: React.FC<MainSettingsMenuProps> = ({
   onNewEpisode,
   onExportEpisode,
   onImportEpisode,
+  getEpisode,
+  onLoadEpisode,
 }) => {
+  // Archivio ospiti (stesso archivio per tutte le versioni): "Salvato" resta scritto due secondi.
+  const archive = useArchive();
+  const [isArchived, setIsArchived] = useState(false);
+  const handleArchive = () => {
+    archive.save(getEpisode());
+    setIsArchived(true);
+    window.setTimeout(() => setIsArchived(false), 2000);
+  };
+  const handleRemoveArchived = (id: string, name: string) => {
+    if (window.confirm(`Eliminare ${name || 'questo ospite'} dall'archivio?`)) archive.remove(id);
+  };
+
   // "Nuova puntata" cancella tutto: serve un secondo clic entro 4 secondi per confermare.
   const [isConfirmingNewEpisode, setIsConfirmingNewEpisode] = useState(false);
   useEffect(() => {
@@ -169,6 +188,17 @@ export const MainSettingsMenu: React.FC<MainSettingsMenuProps> = ({
           )}
 
           <section className="border-t-4 border-dotted border-[var(--phosphor)]/10 pt-5">
+            {/* Archivio ospiti: salvati in questo browser, si ricaricano da qui o dalla schermata iniziale. */}
+            <div className="mb-4 space-y-3">
+              <PixelButton label={isArchived ? 'SALVATO!' : "SALVA NELL'ARCHIVIO"} onClick={handleArchive} color="#ffe14d" textClassName="text-sm" className="w-full" />
+              {archive.entries.map(entry => (
+                <div key={entry.id} className="flex items-center gap-2">
+                  <span className="min-w-0 flex-1 text-xs text-[var(--phosphor)]"><PixelText text={archiveLabel(entry)} flash={false} /></span>
+                  <PixelButton label="CARICA" onClick={() => onLoadEpisode(entry.episode)} color="#7dff7a" textClassName="text-xs" className="shrink-0 [&>span]:px-3 [&>span]:py-2" />
+                  <PixelButton label="X" onClick={() => handleRemoveArchived(entry.id, entry.episode.guestName)} color="#ff64c4" textClassName="text-xs" className="shrink-0 [&>span]:px-3 [&>span]:py-2" />
+                </div>
+              ))}
+            </div>
             {/* Ospite su file: salva ospite e classifiche sul computer, o ricaricane uno salvato. */}
             <div className="mb-3 grid grid-cols-2 gap-3">
               <PixelButton label="ESPORTA" onClick={onExportEpisode} color="#7dff7a" textClassName="text-sm" className="w-full" />

@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from 'react';
+import type { Episode } from '../../../shared/episodeFile';
+import { archiveLabel, useArchive } from '../../../shared/archive';
 import { Ranking } from '../types';
 import { motion } from 'motion/react';
 import { neonSpring } from '../motionConfig';
@@ -15,6 +17,9 @@ interface MainSettingsMenuProps {
   onNewEpisode: () => void;
   onExportEpisode: () => void;
   onImportEpisode: () => void;
+  /** Ospite e classifiche come sono ora (per salvarli nell'archivio). */
+  getEpisode: () => Episode;
+  onLoadEpisode: (episode: Episode) => void;
 }
 
 const fieldClasses = "w-full rounded-xl bg-white/[0.06] px-3 py-2 text-base text-white placeholder-white/30 outline-none shadow-[inset_0_0_0_1px_rgba(255,255,255,0.08)] transition-colors focus:bg-white/[0.12]";
@@ -31,7 +36,21 @@ export const MainSettingsMenu: React.FC<MainSettingsMenuProps> = ({
   onNewEpisode,
   onExportEpisode,
   onImportEpisode,
+  getEpisode,
+  onLoadEpisode,
 }) => {
+  // Archivio ospiti (stesso archivio per tutte le versioni): "Salvato" resta scritto due secondi.
+  const archive = useArchive();
+  const [isArchived, setIsArchived] = useState(false);
+  const handleArchive = () => {
+    archive.save(getEpisode());
+    setIsArchived(true);
+    window.setTimeout(() => setIsArchived(false), 2000);
+  };
+  const handleRemoveArchived = (id: string, name: string) => {
+    if (window.confirm(`Eliminare ${name || 'questo ospite'} dall'archivio?`)) archive.remove(id);
+  };
+
   // "Nuova puntata" cancella tutto: serve un secondo clic entro 4 secondi per confermare.
   const [isConfirmingNewEpisode, setIsConfirmingNewEpisode] = useState(false);
   useEffect(() => {
@@ -154,6 +173,17 @@ export const MainSettingsMenu: React.FC<MainSettingsMenuProps> = ({
         )}
 
         <section>
+          {/* Archivio ospiti: salvati in questo browser, si ricaricano da qui o dalla schermata iniziale. */}
+          <div className="mb-4 space-y-2">
+            <button type="button" onClick={handleArchive} className="rounded-full bg-white/10 px-4 py-1.5 text-sm font-medium text-white/80 transition-colors hover:bg-white/20 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white w-full">{isArchived ? 'Salvato nell\'archivio ✓' : 'Salva nell\'archivio'}</button>
+            {archive.entries.map(entry => (
+              <div key={entry.id} className="flex items-center gap-2">
+                <span className="min-w-0 flex-1 truncate text-sm">{archiveLabel(entry)}</span>
+                <button type="button" onClick={() => onLoadEpisode(entry.episode)} className="rounded-full bg-white/10 px-4 py-1.5 text-sm font-medium text-white/80 transition-colors hover:bg-white/20 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white shrink-0">Carica</button>
+                <button type="button" onClick={() => handleRemoveArchived(entry.id, entry.episode.guestName)} className="rounded-full bg-white/10 px-4 py-1.5 text-sm font-medium text-white/80 transition-colors hover:bg-white/20 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white shrink-0">Elimina</button>
+              </div>
+            ))}
+          </div>
           {/* Ospite su file: salva ospite e classifiche sul computer, o ricaricane uno salvato. */}
           <div className="mb-3 grid grid-cols-2 gap-3">
             <button type="button" onClick={onExportEpisode} className="rounded-full bg-white/10 px-4 py-1.5 text-sm font-medium text-white/80 transition-colors hover:bg-white/20 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white w-full">Esporta ospite</button>

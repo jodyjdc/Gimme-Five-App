@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { archiveLabel, useArchive } from '../../../shared/archive';
+import type { Episode } from '../../../shared/episodeFile';
 import { AnimatePresence, motion } from 'motion/react';
 import { Ranking } from '../types';
 import { broadcastTransition, easeOutQuart, quickTransition, screenTransition, softSpring } from '../motionConfig';
@@ -7,10 +9,13 @@ interface SetupWizardProps {
   onSetupComplete: (guestName: string, rankings: Ranking[]) => void;
   /** Ospite salvato su file: lo carica e salta la configurazione. */
   onImportEpisode: () => void;
+  /** Ospite scelto dall'archivio: lo carica e salta la configurazione. */
+  onLoadEpisode: (episode: Episode) => void;
 }
 
-export const SetupWizard: React.FC<SetupWizardProps> = ({ onSetupComplete, onImportEpisode }) => {
+export const SetupWizard: React.FC<SetupWizardProps> = ({ onSetupComplete, onImportEpisode, onLoadEpisode }) => {
   const [step, setStep] = useState(0); // 0: guest name, 1-5: rankings
+  const archive = useArchive();
   const [guestName, setGuestName] = useState('');
   const [rankingsData, setRankingsData] = useState<{ fullTitle: string; keyword: string }[]>(
     Array(5).fill(null).map(() => ({ fullTitle: '', keyword: '' }))
@@ -197,6 +202,17 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onSetupComplete, onImp
         <button type="button" onClick={onImportEpisode} className="mt-8 rounded-md px-6 py-2 text-xl font-semibold text-white/50 transition-colors hover:text-cyan-200 focus:outline-none focus:ring-2 focus:ring-cyan-400">
           Importa ospite da file
         </button>
+      )}
+      {/* Ospiti salvati nell'archivio: un clic e si parte da lì. */}
+      {step === 0 && archive.entries.length > 0 && (
+        <div className="flex flex-col items-center gap-1">
+          <p className="mt-8 font-semibold text-white/50 text-sm opacity-70">Ospiti salvati</p>
+          {archive.entries.map(entry => (
+            <button key={entry.id} type="button" onClick={() => onLoadEpisode(entry.episode)} className="rounded-md px-6 py-2 text-xl font-semibold text-white/50 transition-colors hover:text-cyan-200 focus:outline-none focus:ring-2 focus:ring-cyan-400">
+              {archiveLabel(entry)}
+            </button>
+          ))}
+        </div>
       )}
     </div>
   );

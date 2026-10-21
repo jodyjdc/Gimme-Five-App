@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { archiveLabel, useArchive } from '../../../shared/archive';
+import type { Episode } from '../../../shared/episodeFile';
 import { AnimatePresence, motion } from 'motion/react';
 import { Ranking } from '../types';
 import { NeonHand } from './NeonHand';
@@ -10,12 +12,15 @@ interface SetupWizardProps {
   onSetupComplete: (guestName: string, rankings: Ranking[]) => void;
   /** Ospite salvato su file: lo carica e salta la configurazione. */
   onImportEpisode: () => void;
+  /** Ospite scelto dall'archivio: lo carica e salta la configurazione. */
+  onLoadEpisode: (episode: Episode) => void;
 }
 
 const inputClasses = 'cd-field w-full rounded-full bg-transparent px-8 py-5 text-center text-3xl font-medium text-white caret-[rgb(0,208,255)] placeholder-white/30 focus:outline-none';
 
-export const SetupWizard: React.FC<SetupWizardProps> = ({ onSetupComplete, onImportEpisode }) => {
+export const SetupWizard: React.FC<SetupWizardProps> = ({ onSetupComplete, onImportEpisode, onLoadEpisode }) => {
   const [step, setStep] = useState(0); // 0: nome ospite, 1-5: classifiche
+  const archive = useArchive();
   const [guestName, setGuestName] = useState('');
   const [rankingsData, setRankingsData] = useState<{ fullTitle: string; keyword: string }[]>(
     Array(5).fill(null).map(() => ({ fullTitle: '', keyword: '' }))
@@ -154,6 +159,17 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onSetupComplete, onImp
         <button type="button" onClick={onImportEpisode} className="mt-8 rounded-full px-6 py-2 text-xl font-medium text-white/50 transition-colors hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white">
           Importa ospite da file
         </button>
+      )}
+      {/* Ospiti salvati nell'archivio: un clic e si parte da lì. */}
+      {step === 0 && archive.entries.length > 0 && (
+        <div className="flex flex-col items-center gap-1">
+          <p className="mt-8 font-medium text-white/50 text-sm opacity-70">Ospiti salvati</p>
+          {archive.entries.map(entry => (
+            <button key={entry.id} type="button" onClick={() => onLoadEpisode(entry.episode)} className="rounded-full px-6 py-2 text-xl font-medium text-white/50 transition-colors hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white">
+              {archiveLabel(entry)}
+            </button>
+          ))}
+        </div>
       )}
     </div>
   );

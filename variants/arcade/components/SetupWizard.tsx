@@ -1,4 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { archiveLabel, useArchive } from '../../../shared/archive';
+import type { Episode } from '../../../shared/episodeFile';
 import { AnimatePresence, motion } from 'motion/react';
 import { Ranking } from '../types';
 import { PixelButton, PixelInput, PixelText } from './Pixel';
@@ -8,10 +10,13 @@ interface SetupWizardProps {
   onSetupComplete: (guestName: string, rankings: Ranking[]) => void;
   /** Ospite salvato su file: lo carica e salta la configurazione. */
   onImportEpisode: () => void;
+  /** Ospite scelto dall'archivio: lo carica e salta la configurazione. */
+  onLoadEpisode: (episode: Episode) => void;
 }
 
-export const SetupWizard: React.FC<SetupWizardProps> = ({ onSetupComplete, onImportEpisode }) => {
+export const SetupWizard: React.FC<SetupWizardProps> = ({ onSetupComplete, onImportEpisode, onLoadEpisode }) => {
   const [step, setStep] = useState(0); // 0: guest name, 1-5: rankings
+  const archive = useArchive();
   const [guestName, setGuestName] = useState('');
   const [rankingsData, setRankingsData] = useState<{ fullTitle: string; keyword: string }[]>(
     Array(5).fill(null).map(() => ({ fullTitle: '', keyword: '' }))
@@ -204,6 +209,15 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onSetupComplete, onImp
       />
       {step === 0 && (
         <PixelButton label="IMPORTA OSPITE DA FILE" onClick={onImportEpisode} color="#7dff7a" textClassName="text-sm" className="mt-6" />
+      )}
+      {/* Ospiti salvati nell'archivio: un clic e si parte da lì. */}
+      {step === 0 && archive.entries.length > 0 && (
+        <div className="mt-8 flex flex-col items-center gap-3">
+          <p className="text-sm opacity-70"><PixelText text="OSPITI SALVATI" flash={false} /></p>
+          {archive.entries.map(entry => (
+            <PixelButton key={entry.id} label={archiveLabel(entry)} onClick={() => onLoadEpisode(entry.episode)} color="#00d0ff" textClassName="text-sm" />
+          ))}
+        </div>
       )}
     </div>
   );

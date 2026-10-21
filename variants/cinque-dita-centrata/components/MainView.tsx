@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import type { Episode } from '../../../shared/episodeFile';
 import { AnimatePresence, motion } from 'motion/react';
 import { Ranking, RankingBox } from '../types';
 import { Logo } from './Logo';
@@ -21,6 +22,9 @@ interface MainViewProps {
   onNewEpisode: () => void;
   onExportEpisode: () => void;
   onImportEpisode: () => void;
+  /** Ospite e classifiche come sono ora (per salvarli nell'archivio). */
+  getEpisode: () => Episode;
+  onLoadEpisode: (episode: Episode) => void;
 }
 
 // Accensione in sequenza: prima il logo, poi il nome, poi gli anelli da 1 a 5.
@@ -119,6 +123,8 @@ export const MainView: React.FC<MainViewProps> = ({
   onNewEpisode,
   onExportEpisode,
   onImportEpisode,
+  getEpisode,
+  onLoadEpisode,
 }) => {
   const [selectedBoxId, setSelectedBoxId] = useState<number | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -180,6 +186,8 @@ export const MainView: React.FC<MainViewProps> = ({
             onNewEpisode={onNewEpisode}
             onExportEpisode={onExportEpisode}
             onImportEpisode={onImportEpisode}
+            getEpisode={getEpisode}
+            onLoadEpisode={onLoadEpisode}
           />
         )}
       </AnimatePresence>

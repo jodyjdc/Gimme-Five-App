@@ -86,7 +86,7 @@ const ACCENTED: Record<string, [string, keyof typeof ACCENTS]> = {
 };
 
 // Varianti tipografiche che arrivano incollando testo (apostrofi curvi, virgolette, ecc.).
-const ALIASES: Record<string, string> = { '’': "'", '‘': "'", '`': "'", '“': '"', '”': '"', '«': '"', '»': '"', '–': '-', '—': '-', '…': '.', '▶': '►', '◀': '◄' };
+const ALIASES: Record<string, string> = { '’': "'", '‘': "'", '`': "'", '“': '"', '”': '"', '«': '"', '»': '"', '–': '-', '—': '-', '…': '.', '▶': '►', '◀': '◄', '·': '-' };
 
 const BLANK = '.....';
 
