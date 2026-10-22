@@ -59,3 +59,14 @@ describe('salvataggio automatico', () => {
     expect(readAutosave('k')).toBeNull();
   });
 });
+
+describe('classifica alla cieca', () => {
+  it('conserva tipo e cose da svelare; scarta una cieca incompleta', () => {
+    const blind = { ...ranking(2), mode: 'blind', blindItems: ['A', 'B', 'C', 'D', 'E'] };
+    const broken = { ...ranking(3), mode: 'blind', blindItems: ['A'] };
+    const episode = parseEpisode(file({ rankings: [ranking(1, true), blind, broken, ranking(4), ranking(5)] }));
+    expect(episode.rankings[1]).toMatchObject({ mode: 'blind', blindItems: ['A', 'B', 'C', 'D', 'E'] });
+    expect(episode.rankings[2].mode).toBeUndefined();
+    expect(episode.rankings[0].mode).toBeUndefined();
+  });
+});

@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { AnimatePresence, motion } from 'motion/react';
+import { AnimatePresence, animate, motion, useMotionValue } from 'motion/react';
 import { Ranking } from '../types';
 import { Glass, trackGlassLight } from './Glass';
-import { FitInput } from './FitInput';
+import { FitInput, FitText } from './FitInput';
 import { easeOutQuint, liquidMorphSpring } from '../motionConfig';
 
 interface DetailViewProps {
@@ -42,6 +42,25 @@ const FILL_STEP = 0.12;
 const CARD_AT = 4 * FILL_STEP + 0.4;
 const SAVE_DELAY_MS = (CARD_AT + 1.9) * 1000;
 
+// Classifica alla cieca: lo slot sotto il puntatore mentre si trascina la cosa svelata.
+const slotAt = (x: number, y: number) => {
+  for (const element of document.elementsFromPoint(x - window.scrollX, y - window.scrollY)) {
+    const slot = (element as HTMLElement).closest?.('[data-slot]');
+    if (slot) return Number(slot.getAttribute('data-slot'));
+  }
+  return null;
+};
+
+// Cosa svelata sulla lastra: il più grande possibile (va a capo tra parole), leggibile nel totale.
+const revealSizeClass = (text: string) => {
+  if (text.length > 22) return 'text-4xl';
+  if (text.length > 12) return 'text-5xl';
+  return 'text-6xl';
+};
+
+// Il mazzo accanto agli slot: lastre ancora coperte impilate dietro quella in cima.
+const DECK_SIZE = 'min(24rem, 24vw)';
+
 export const DetailView: React.FC<DetailViewProps> = ({ ranking, boxId, onTitleChange, onSave, onBack, initialEntries, onDraftChange }) => {
   const [entries, setEntries] = useState<string[]>(['', '', '', '', '']);
   const [isEditingTitle, setIsEditingTitle] = useState(false);
@@ -50,6 +69,31 @@ export const DetailView: React.FC<DetailViewProps> = ({ ranking, boxId, onTitleC
   const saveTimeoutRef = useRef<number | null>(null);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
   const saveButtonRef = useRef<HTMLDivElement>(null);
+
+  // Classifica alla cieca: le 5 cose escono nell'ordine scritto dall'host; quella svelata va messa in uno
+  // slot libero (trascinandola o premendo 1-5) prima di svelare la successiva. Una volta messa resta lì.
+  // (Se le 5 cose non sono tutte scritte, la classifica si comporta da normale: niente svelamenti a vuoto.)
+  const isBlind = ranking.mode === 'blind' && ranking.blindItems?.length === 5 && ranking.blindItems.every(item => item.trim() !== '');
+  const blindItems = ranking.blindItems ?? [];
+  const placedCount = entries.filter(entry => entry.trim() !== '').length;
+  const [isRevealed, setIsRevealed] = useState(false);
+  const [hoverSlot, setHoverSlot] = useState<number | null>(null);
+  const revealedItem = isBlind && isRevealed ? blindItems[placedCount] ?? null : null;
+  const isBlindDone = isBlind && placedCount === 5;
+
+  const handleReveal = () => {
+    if (!isBlind || isRevealed || isSaving || placedCount >= 5) return;
+    setIsRevealed(true);
+  };
+
+  const handlePlace = (slot: number) => {
+    if (revealedItem === null || isSaving || entries[slot]?.trim()) return;
+    const next = entries.map((entry, index) => (index === slot ? revealedItem : entry));
+    setEntries(next);
+    onDraftChange?.(next);
+    setIsRevealed(false);
+    setHoverSlot(null);
+  };
 
   // Solo al cambio di classifica: modificare il titolo cambia `ranking` e cancellerebbe le voci non salvate.
   useEffect(() => {
@@ -81,7 +125,14 @@ export const DetailView: React.FC<DetailViewProps> = ({ ranking, boxId, onTitleC
         else onBack();
       } else if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) {
         event.preventDefault();
-        handleSaveClick();
+        if (!isBlind || isBlindDone) handleSaveClick();
+      } else if (isBlind && (event.key === ' ' || event.key === 'Enter')) {
+        // Alla cieca: barra spaziatrice o Invio svelano la cosa successiva.
+        event.preventDefault();
+        handleReveal();
+      } else if (isBlind && /^[1-5]$/.test(event.key)) {
+        event.preventDefault();
+        handlePlace(Number(event.key) - 1);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -186,19 +237,23 @@ export const DetailView: React.FC<DetailViewProps> = ({ ranking, boxId, onTitleC
         animate={{ opacity: isSaving ? 0 : 1 }}
         transition={{ duration: 0.5, delay: isSaving ? CARD_AT - 0.2 : 0 }}
       >
+      {/* Alla cieca: righe a sinistra e mazzo a destra; finito il mazzo, il mazzo si restringe fino a zero e le
+          righe (blocco centrato) scivolano al centro in modo continuo, un fotogramma alla volta. */}
+      <div className={isBlind ? 'mx-auto flex w-fit items-center' : ''}>
       <motion.main
-        className="mx-auto grid w-fit grid-cols-[auto_min(42rem,70vw)] items-center gap-x-10 gap-y-5"
+        className={`mx-auto grid w-fit items-center gap-x-10 gap-y-5 ${isBlind ? 'grid-cols-[auto_min(36rem,40vw)]' : 'grid-cols-[auto_min(42rem,70vw)]'}`}
         variants={listVariants}
         initial="hidden"
         animate="visible"
       >
         {entries.map((entry, index) => {
-          const isFocused = focusedIndex === index;
+          // Alla cieca la riga "si accende" quando ci si passa sopra con la cosa trascinata.
+          const isFocused = focusedIndex === index || hoverSlot === index;
           const fillDelay = (entries.length - 1 - index) * FILL_STEP;
 
           return (
             <React.Fragment key={index}>
-              <motion.div variants={rowVariants}>
+              <motion.div variants={rowVariants} data-slot={isBlind ? index : undefined}>
                 {/* Riga selezionata: la lente si avvicina appena e un anello di luce le si accende SOPRA
                     (se fosse dietro, il vetro lo rifrangerebbe in macchie chiare). */}
                 <motion.div
@@ -234,7 +289,26 @@ export const DetailView: React.FC<DetailViewProps> = ({ ranking, boxId, onTitleC
                   </Glass>
                 </motion.div>
               </motion.div>
-              <motion.div variants={rowVariants} className="relative">
+              <motion.div variants={rowVariants} className="relative" data-slot={isBlind ? index : undefined}>
+                {isBlind ? (
+                  // Slot alla cieca: non si scrive, si riceve la cosa svelata (che ci vola dentro dalla lastra).
+                  <div className="flex min-h-[5.75rem] items-center py-2">
+                    {entry ? (
+                      // La pillola si dissolve dove l'ospite l'ha lasciata (sopra lo slot) e la scritta emerge qui, alla stessa
+                      // grandezza: niente scritta "agganciata" tra pillola e riga, che verrebbe stirata fino alla colonna.
+                      <motion.span
+                        className="block w-full"
+                        initial={{ opacity: 0, x: -16, filter: 'blur(10px)' }}
+                        animate={{ opacity: 1, x: 0, filter: 'blur(0px)', transitionEnd: { filter: 'none' } }}
+                        transition={{ duration: 0.5, ease: easeOutQuint, delay: 0.1 }}
+                      >
+                        <FitText text={entry} className="font-tight lg-text-glow text-6xl font-semibold leading-tight tracking-tight text-white" />
+                      </motion.span>
+                    ) : (
+                      <span className="font-tight text-6xl font-semibold leading-tight text-white/20">—</span>
+                    )}
+                  </div>
+                ) : (
                 <FitInput
                   ref={(element) => { inputRefs.current[index] = element; }}
                   value={entry}
@@ -249,6 +323,7 @@ export const DetailView: React.FC<DetailViewProps> = ({ ranking, boxId, onTitleC
                   className="font-tight lg-text-glow text-6xl font-semibold leading-tight tracking-tight text-white"
                   inputClassName="bg-transparent py-2 caret-[var(--lg-cyan)] placeholder-white/20 focus:outline-none"
                 />
+                )}
                 <motion.span
                   aria-hidden="true"
                   className="absolute bottom-0 left-0 h-[2px] w-full origin-left rounded-full bg-gradient-to-r from-white via-white/60 to-transparent"
@@ -261,6 +336,27 @@ export const DetailView: React.FC<DetailViewProps> = ({ ranking, boxId, onTitleC
           );
         })}
       </motion.main>
+      {isBlind && (
+        <BlindDeck
+          collapsed={isBlindDone}
+          itemIndex={placedCount}
+          revealedItem={revealedItem}
+          covered={5 - placedCount - (revealedItem === null ? 0 : 1)}
+          isLocked={isSaving}
+          onReveal={handleReveal}
+          onDrag={(x, y) => setHoverSlot(slotAt(x, y))}
+          onDrop={(x, y) => {
+            const slot = slotAt(x, y);
+            if (slot === null || entries[slot]?.trim()) {
+              setHoverSlot(null);
+              return false;
+            }
+            handlePlace(slot);
+            return true;
+          }}
+        />
+      )}
+      </div>
       </motion.div>
 
       {/* Entra con le righe, non sopra la schermata che se ne va. */}
@@ -284,16 +380,23 @@ export const DetailView: React.FC<DetailViewProps> = ({ ranking, boxId, onTitleC
           depth={50}
           role="button"
           tabIndex={0}
-          aria-disabled={isSaving}
-          onClick={handleSaveClick}
-          onKeyDown={(event) => (event.key === 'Enter' || event.key === ' ') && handleSaveClick()}
+          aria-disabled={isSaving || (isBlind && !isBlindDone && revealedItem !== null)}
+          onClick={isBlind && !isBlindDone ? handleReveal : handleSaveClick}
+          onKeyDown={(event) => {
+            if (event.key !== 'Enter' && event.key !== ' ') return;
+            // Alla cieca questi tasti li gestisce già la schermata (svela): qui niente doppioni.
+            if (isBlind) return;
+            handleSaveClick();
+          }}
           onPointerMove={trackGlassLight}
           className="font-tight lg-text-glow cursor-pointer px-16 py-6 text-3xl font-semibold text-white focus:outline-none focus-visible:ring-4 focus-visible:ring-white/70"
+          // Alla cieca, con una cosa svelata ancora da collocare, "Svela" si spegne finché non è messa in uno slot.
+          animate={{ opacity: isBlind && !isBlindDone && revealedItem !== null ? 0.35 : 1 }}
           whileHover={isSaving ? undefined : { scale: 1.05 }}
           whileTap={isSaving ? undefined : { scale: 0.95 }}
           transition={liquidMorphSpring}
         >
-          Salva
+          {isBlind && !isBlindDone ? 'Svela' : 'Salva'}
         </Glass>
       </motion.footer>
 
@@ -322,3 +425,139 @@ export const DetailView: React.FC<DetailViewProps> = ({ ranking, boxId, onTitleC
     </div>
   );
 };
+
+// Mazzo della classifica alla cieca: in cima la lastra coperta ("?", clic per svelare) o quella svelata
+// (da trascinare su uno slot); dietro, una lastra per ogni cosa ancora coperta.
+const BlindDeck: React.FC<{
+  itemIndex: number;
+  revealedItem: string | null;
+  covered: number;
+  isLocked: boolean;
+  onReveal: () => void;
+  onDrag: (x: number, y: number) => void;
+  /** true = collocata in uno slot (la pillola si dissolve lì), false = torna al mazzo. */
+  onDrop: (x: number, y: number) => boolean;
+  /** Tutte e 5 collocate: il mazzo si dissolve e si restringe, lasciando il centro alle righe. */
+  collapsed: boolean;
+}> = ({ collapsed, itemIndex, revealedItem, covered, isLocked, onReveal, onDrag, onDrop }) => {
+  const layersBehind = revealedItem === null ? covered - 1 : covered;
+  const isEmpty = revealedItem === null && covered === 0;
+
+  return (
+    <motion.div
+      className="relative flex shrink-0 items-center justify-center"
+      style={{ width: DECK_SIZE, height: DECK_SIZE, marginLeft: '3rem' }}
+      initial={{ opacity: 0, x: 40 }}
+      animate={collapsed ? { opacity: 0, width: 0, marginLeft: 0, x: 0 } : { opacity: isEmpty ? 0 : 1, x: 0 }}
+      transition={collapsed
+        ? { opacity: { duration: 0.3 }, default: { duration: 0.9, ease: [0.45, 0, 0.2, 1], delay: 0.2 } }
+        : { duration: 0.8, ease: easeOutQuint, delay: 0.5 }}
+    >
+      {Array.from({ length: Math.max(0, layersBehind) }, (_, index) => {
+        const depth = layersBehind - index;
+        return (
+          <motion.div
+            key={`layer-${index}`}
+            aria-hidden="true"
+            className="lg-glass absolute inset-0 rounded-[40px]"
+            initial={false}
+            animate={{ y: -depth * 14, scale: 1 - depth * 0.05, opacity: 0.55 - depth * 0.1 }}
+            transition={liquidMorphSpring}
+          />
+        );
+      })}
+      <AnimatePresence mode="popLayout" initial={false}>
+        {revealedItem !== null ? (
+          <RevealedCard
+            key={`face-${itemIndex}`}
+            text={revealedItem}
+            isLocked={isLocked}
+            onDrag={onDrag}
+            onDrop={onDrop}
+          />
+        ) : covered > 0 ? (
+          <Glass
+            key={`back-${itemIndex}`}
+            radius={40}
+            depth={110}
+            frost={0}
+            role="button"
+            tabIndex={0}
+            aria-label="Svela la prossima"
+            onClick={onReveal}
+            onPointerMove={trackGlassLight}
+            className="absolute inset-0 z-10 flex cursor-pointer items-center justify-center focus:outline-none focus-visible:ring-4 focus-visible:ring-white/70"
+            initial={{ opacity: 0, y: -14, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            // Il "?" sparisce in fretta, la scritta arriva subito dopo: niente "?" sfocato sopra la scritta.
+            exit={{ opacity: 0, scale: 0.94, filter: 'blur(10px)', transition: { duration: 0.18 } }}
+            whileHover={isLocked ? undefined : { scale: 1.04 }}
+            whileTap={isLocked ? undefined : { scale: 0.96 }}
+            transition={liquidMorphSpring}
+          >
+            <span className="font-tight lg-text-glow text-[10rem] font-bold leading-none text-white/90">?</span>
+          </Glass>
+        ) : null}
+      </AnimatePresence>
+    </motion.div>
+  );
+};
+
+// Cosa svelata: ognuna ha la sua posizione di trascinamento, che parte da zero nel mazzo (se fosse condivisa,
+// la scheda successiva comparirebbe dove era stata lasciata la precedente).
+// Trascinando, la lastra quadrata si stringe in una pillola grande quanto la scritta (layout animato);
+// lasciata fuori da uno slot torna quadrata nel mazzo. ref: serve ad AnimatePresence (popLayout).
+const RevealedCard = React.forwardRef<HTMLDivElement, {
+  text: string;
+  isLocked: boolean;
+  onDrag: (x: number, y: number) => void;
+  onDrop: (x: number, y: number) => boolean;
+}>(({ text, isLocked, onDrag, onDrop }, ref) => {
+  const [isDragging, setIsDragging] = useState(false);
+  const dragX = useMotionValue(0);
+  const dragY = useMotionValue(0);
+
+  return (
+    <Glass
+      ref={ref}
+      round={isDragging}
+      radius={40}
+      depth={isDragging ? 60 : 110}
+      frost={0}
+      role="button"
+      aria-label={`Cosa svelata: ${text}. Trascinala su uno slot`}
+      className={`relative z-10 flex cursor-grab items-center justify-center text-center active:cursor-grabbing ${isDragging ? 'px-10 py-4' : 'h-full w-full p-8'}`}
+      layout
+      drag={!isLocked}
+      dragElastic={0.2}
+      dragMomentum={false}
+      style={{ x: dragX, y: dragY }}
+      whileDrag={{ zIndex: 50 }}
+      onDragStart={() => setIsDragging(true)}
+      onDrag={(_, info) => onDrag(info.point.x, info.point.y)}
+      onDragEnd={(_, info) => {
+        setIsDragging(false);
+        if (!onDrop(info.point.x, info.point.y)) {
+          animate(dragX, 0, liquidMorphSpring);
+          animate(dragY, 0, liquidMorphSpring);
+        }
+      }}
+      onPointerMove={trackGlassLight}
+      initial={{ opacity: 0, scale: 0.9, filter: 'blur(14px)' }}
+      animate={{ opacity: 1, scale: 1, filter: 'blur(0px)', transitionEnd: { filter: 'none' }, transition: { ...liquidMorphSpring, delay: 0.12 } }}
+      // Collocata: la pillola di vetro si dissolve dove l'ospite l'ha lasciata.
+      exit={{ opacity: 0, scale: 0.92, transition: { duration: 0.3 } }}
+      transition={liquidMorphSpring}
+    >
+      <motion.span
+        // In pillola la scritta ha già la grandezza dello slot: atterrando non cambia misura.
+        className={`${isDragging ? 'whitespace-nowrap text-6xl leading-tight' : `${revealSizeClass(text)} break-words leading-[1.05]`} font-tight lg-text-glow block font-semibold tracking-tight text-white`}
+        transition={{ layout: liquidMorphSpring }}
+      >
+        {text}
+      </motion.span>
+    </Glass>
+  );
+});
+
+RevealedCard.displayName = 'RevealedCard';

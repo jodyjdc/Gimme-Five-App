@@ -10,6 +10,8 @@ interface MainSettingsMenuProps {
   onClose: () => void;
   onGuestNameSizeChange: (size: number) => void;
   onRankingMetaChange: (id: number, field: 'fullTitle' | 'keyword', value: string) => void;
+  /** Classifica alla cieca: le 5 cose da svelare; null = torna classifica normale. */
+  onRankingBlindChange: (id: number, blindItems: string[] | null) => void;
   rankings: Ranking[];
   guestName: string;
   onGuestNameChange: (name: string) => void;
@@ -29,6 +31,7 @@ export const MainSettingsMenu: React.FC<MainSettingsMenuProps> = ({
   onClose,
   onGuestNameSizeChange,
   onRankingMetaChange,
+  onRankingBlindChange,
   rankings,
   guestName,
   onGuestNameChange,
@@ -63,6 +66,9 @@ export const MainSettingsMenu: React.FC<MainSettingsMenuProps> = ({
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
+        // Il cursore esce dal campo: mentre il pannello sparisce, un tasto premuto subito dopo (es. 1-5 per aprire
+        // una casella) finirebbe scritto nell'ultimo campo usato.
+        (document.activeElement as HTMLElement | null)?.blur();
         onClose();
       }
     };
@@ -157,6 +163,26 @@ export const MainSettingsMenu: React.FC<MainSettingsMenuProps> = ({
                   className={fieldClasses}
                   placeholder="Parola..."
                 />
+                {/* Classifica alla cieca: le 5 cose si svelano una alla volta e l'ospite le colloca negli slot. */}
+                <button
+                  type="button"
+                  aria-pressed={ranking.mode === 'blind'}
+                  onClick={() => onRankingBlindChange(ranking.id, ranking.mode === 'blind' ? null : ranking.blindItems ?? ['', '', '', '', ''])}
+                  className={`font-tight rounded-full px-4 py-1.5 text-sm font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white ${ranking.mode === 'blind' ? 'bg-white text-[#04050a]' : 'bg-white/10 text-white/80 hover:bg-white/20 hover:text-white'}`}
+                >
+                  {ranking.mode === 'blind' ? 'Alla cieca ✓' : 'Rendi alla cieca'}
+                </button>
+                {ranking.mode === 'blind' && (ranking.blindItems ?? []).map((item, index) => (
+                  <input
+                    key={index}
+                    type="text"
+                    value={item}
+                    onChange={(event) => onRankingBlindChange(ranking.id, (ranking.blindItems ?? []).map((value, i) => (i === index ? event.target.value : value)))}
+                    aria-label={`Cosa da svelare ${index + 1}`}
+                    className={fieldClasses}
+                    placeholder={`${index + 1}ª da svelare...`}
+                  />
+                ))}
               </div>
             </div>
           ))}
@@ -180,7 +206,8 @@ export const MainSettingsMenu: React.FC<MainSettingsMenuProps> = ({
         <section>
           <h3 className="font-tight mb-2 text-sm font-medium text-white/65">Tasti rapidi</h3>
           <dl className="font-tight grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm text-white/80">
-            <dt className="font-semibold text-white">1 – 5</dt><dd>apre la casella</dd>
+            <dt className="font-semibold text-white">1 – 5</dt><dd>apre la casella; alla cieca: mette la cosa svelata in quello slot</dd>
+            <dt className="font-semibold text-white">Spazio</dt><dd>alla cieca: svela la prossima</dd>
             <dt className="font-semibold text-white">S</dt><dd>salvaschermo (un tasto qualsiasi lo chiude)</dd>
             <dt className="font-semibold text-white">Invio</dt><dd>riga successiva, dall'ultima va su Salva</dd>
             <dt className="font-semibold text-white">⌘/Ctrl + Invio</dt><dd>salva la classifica</dd>

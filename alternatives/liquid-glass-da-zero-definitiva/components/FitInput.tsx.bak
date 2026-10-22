@@ -44,7 +44,8 @@ export const FitInput = forwardRef<HTMLInputElement, FitInputProps>(({
     let scale = 1;
     for (let pass = 0; pass < 2; pass++) {
       mirror.style.fontSize = `${scale}em`;
-      const needed = mirror.getBoundingClientRect().width;
+      // Misura di layout, non a schermo: durante una trasformazione animata la scala falserebbe tutto.
+      const needed = mirror.offsetWidth;
       if (needed <= 0) return 1;
       scale = Math.min(1, scale * (available / needed));
     }
@@ -122,7 +123,8 @@ export const FitText: React.FC<{ text: string; className?: string; minScale?: nu
       const box = boxRef.current;
       const mirror = mirrorRef.current;
       if (!box || !mirror) return;
-      const needed = mirror.getBoundingClientRect().width;
+      // Misura di layout, non a schermo: durante una trasformazione animata la scala falserebbe tutto.
+      const needed = mirror.offsetWidth;
       const available = box.clientWidth;
       setScale(needed > 0 && available > 0 ? Math.max(minScale, Math.min(1, available / needed)) : 1);
     };

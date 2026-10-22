@@ -40,6 +40,10 @@ altrove si usa "Esporta ospite" (codice in `shared/archive.ts`).
 - tasti rapidi: 1–5 aprono le caselle, S il salvaschermo (un tasto qualsiasi lo chiude), Invio riga successiva,
   ⌘/Ctrl+Invio salva, Esc esce dalla riga e poi torna indietro (promemoria nelle impostazioni)
 
+- classifica alla cieca: in configurazione (o nelle impostazioni, "Rendi alla cieca") si scrivono 5 cose; in onda
+  si svelano una alla volta dal mazzo (clic, Spazio o "Svela") e l'ospite le trascina nello slot 1–5 (o tasti 1–5).
+  Una cosa collocata resta lì; quando sono tutte e 5, "Svela" diventa "Salva"
+
 In tutte le versioni: se dopo una pubblicazione la pagina aperta non trova più i suoi file, si ricarica da sola.
 
 ## Struttura

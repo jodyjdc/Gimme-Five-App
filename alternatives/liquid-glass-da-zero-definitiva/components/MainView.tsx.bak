@@ -15,6 +15,8 @@ interface MainViewProps {
   rankings: Ranking[];
   rankingBoxes: RankingBox[];
   onRankingMetaChange: (id: number, field: 'fullTitle' | 'keyword', value: string) => void;
+  /** Classifica alla cieca: le 5 cose da svelare; null = torna classifica normale. */
+  onRankingBlindChange: (id: number, blindItems: string[] | null) => void;
   onSelectRanking: (boxId: number) => void;
   onLogoClick: () => void;
   onResetRanking: (id: number) => void;
@@ -126,6 +128,7 @@ export const MainView: React.FC<MainViewProps> = ({
   rankings,
   rankingBoxes,
   onRankingMetaChange,
+  onRankingBlindChange,
   onSelectRanking,
   onLogoClick,
   onResetRanking,
@@ -208,6 +211,7 @@ export const MainView: React.FC<MainViewProps> = ({
             onClose={() => setIsSettingsOpen(false)}
             onGuestNameSizeChange={setGuestNameSize}
             onRankingMetaChange={onRankingMetaChange}
+            onRankingBlindChange={onRankingBlindChange}
             rankings={rankings}
             guestName={guestName}
             onGuestNameChange={setGuestName}

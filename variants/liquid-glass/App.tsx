@@ -91,6 +91,17 @@ const App: React.FC = () => {
     );
   };
   
+  // Impostazioni: classifica alla cieca (con le sue 5 cose) oppure di nuovo normale.
+  const handleRankingBlindChange = (id: number, blindItems: string[] | null) => {
+    setRankings(prevRankings =>
+      prevRankings.map(ranking => {
+        if (ranking.id !== id) return ranking;
+        const { mode: _mode, blindItems: _items, ...rest } = ranking;
+        return blindItems ? { ...rest, mode: 'blind' as const, blindItems } : rest;
+      })
+    );
+  };
+
   // Impostazioni: svuota una classifica già completata (torna "da fare" e libera la sua casella).
   const handleResetRanking = (id: number) => {
     setRankings(prevRankings =>
@@ -256,6 +267,7 @@ const App: React.FC = () => {
                     rankings={rankings}
                     rankingBoxes={rankingBoxes}
                     onRankingMetaChange={handleUpdateRankingMeta}
+                    onRankingBlindChange={handleRankingBlindChange}
                     onSelectRanking={handleSelectRanking}
                     onLogoClick={handleToggleScreensaver}
                     onResetRanking={handleResetRanking}

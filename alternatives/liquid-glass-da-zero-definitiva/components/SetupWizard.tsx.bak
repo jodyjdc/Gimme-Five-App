@@ -20,9 +20,11 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onSetupComplete, onImp
   const [step, setStep] = useState(0); // 0: guest name, 1-5: rankings
   const archive = useArchive();
   const [guestName, setGuestName] = useState('');
-  const [rankingsData, setRankingsData] = useState<{ fullTitle: string; keyword: string }[]>(
-    Array(5).fill(null).map(() => ({ fullTitle: '', keyword: '' }))
+  // Ogni classifica: normale (l'ospite detta le posizioni) o alla cieca (5 cose scritte qui, svelate in onda).
+  const [rankingsData, setRankingsData] = useState<{ fullTitle: string; keyword: string; blind: boolean; blindItems: string[] }[]>(
+    Array(5).fill(null).map(() => ({ fullTitle: '', keyword: '', blind: false, blindItems: ['', '', '', '', ''] }))
   );
+  const blindInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const guestNameInputRef = useRef<HTMLInputElement>(null);
   const fullTitleInputRef = useRef<HTMLInputElement>(null);
@@ -55,14 +57,19 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onSetupComplete, onImp
     }
   };
 
+  const current = step > 0 ? rankingsData[step - 1] : null;
+  const updateCurrent = (patch: Partial<(typeof rankingsData)[number]>) =>
+    setRankingsData(prev => prev.map((data, index) => (index === step - 1 ? { ...data, ...patch } : data)));
+  const isRankingIncomplete = (data: (typeof rankingsData)[number]) =>
+    data.fullTitle.trim() === '' || data.keyword.trim() === '' || (data.blind && data.blindItems.some(item => item.trim() === ''));
+
   const handleNext = () => {
     // Validation
     if (step === 0) {
       if (guestName.trim() === '') return;
     } else {
       const rankingIndex = step - 1;
-      const currentRanking = rankingsData[rankingIndex];
-      if (currentRanking.fullTitle.trim() === '' || currentRanking.keyword.trim() === '') {
+      if (isRankingIncomplete(rankingsData[rankingIndex])) {
         return;
       }
     }
@@ -76,6 +83,7 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onSetupComplete, onImp
         keyword: data.keyword,
         entries: ['', '', '', '', ''],
         completed: false,
+        ...(data.blind ? { mode: 'blind' as const, blindItems: data.blindItems.map(item => item.trim()) } : {}),
       }));
       onSetupComplete(guestName, finalRankings);
     }
@@ -86,6 +94,8 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onSetupComplete, onImp
       e.preventDefault();
       if (currentField === 'fullTitle') {
         keywordInputRef.current?.focus();
+      } else if (currentField === 'keyword' && current?.blind) {
+        blindInputRefs.current[0]?.focus();
       } else { // 'guestName' or 'keyword'
         handleNext();
       }
@@ -96,9 +106,7 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onSetupComplete, onImp
     if (step === 0) {
       return guestName.trim() === '';
     }
-    const rankingIndex = step - 1;
-    const currentRanking = rankingsData[rankingIndex];
-    return currentRanking.fullTitle.trim() === '' || currentRanking.keyword.trim() === '';
+    return isRankingIncomplete(rankingsData[step - 1]);
   };
 
   const totalSteps = 6;
@@ -183,6 +191,51 @@ export const SetupWizard: React.FC<SetupWizardProps> = ({ onSetupComplete, onImp
                 className={inputClasses}
                 placeholder="Parola nella casella..."
               />
+              {/* Tipo di classifica: interruttore a due posizioni, nello stile dei pulsanti di vetro. */}
+              <div className="flex justify-center pt-2">
+                <div className="font-tight flex rounded-full bg-white/[0.06] p-1.5 text-xl font-medium shadow-[inset_0_1px_0_rgba(255,255,255,0.18),inset_0_0_0_1px_rgba(255,255,255,0.08)]" role="radiogroup" aria-label="Tipo di classifica">
+                  {[{ blind: false, label: 'Classifica normale' }, { blind: true, label: 'Classifica alla cieca' }].map(option => (
+                    <button
+                      key={option.label}
+                      type="button"
+                      role="radio"
+                      aria-checked={current?.blind === option.blind}
+                      onClick={() => updateCurrent({ blind: option.blind })}
+                      className={`rounded-full px-7 py-3 transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-white ${current?.blind === option.blind ? 'bg-white text-[#04050a] shadow-[0_0_1.5rem_rgba(255,255,255,0.3)]' : 'text-white/60 hover:text-white'}`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              {current?.blind && (
+                <motion.div
+                  className="flex flex-col space-y-3"
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.35, ease: easeOutQuint }}
+                >
+                  <p className="font-tight text-lg font-medium text-white/55">Le 5 cose da svelare, nell'ordine in cui usciranno</p>
+                  {current.blindItems.map((item, index) => (
+                    <input
+                      key={index}
+                      ref={(element) => { blindInputRefs.current[index] = element; }}
+                      type="text"
+                      value={item}
+                      onChange={(e) => updateCurrent({ blindItems: current.blindItems.map((value, i) => (i === index ? e.target.value : value)) })}
+                      onKeyDown={(e) => {
+                        if (e.key !== 'Enter') return;
+                        e.preventDefault();
+                        if (index < 4) blindInputRefs.current[index + 1]?.focus();
+                        else handleNext();
+                      }}
+                      aria-label={`Cosa da svelare ${index + 1}`}
+                      className={`${inputClasses} !py-3 !text-2xl`}
+                      placeholder={`${index + 1}ª da svelare...`}
+                    />
+                  ))}
+                </motion.div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>

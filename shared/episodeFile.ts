@@ -8,6 +8,9 @@ export interface EpisodeRanking {
   keyword: string;
   entries: string[];
   completed: boolean;
+  /** Classifica alla cieca (per ora solo Liquid Glass): le 5 cose da svelare una alla volta. */
+  mode?: 'blind';
+  blindItems?: string[];
 }
 
 export interface Episode {
@@ -66,6 +69,10 @@ export const parseEpisode = (text: string): Episode => {
       keyword: isString(ranking.keyword) ? ranking.keyword : '',
       entries: Array.from({ length: 5 }, (_, position) => (isString(entries[position]) ? entries[position] : '')),
       completed: ranking.completed === true,
+      // Classifica alla cieca: si tiene solo se le 5 cose da svelare ci sono tutte.
+      ...(ranking.mode === 'blind' && Array.isArray(ranking.blindItems) && ranking.blindItems.length === 5 && ranking.blindItems.every(isString)
+        ? { mode: 'blind' as const, blindItems: ranking.blindItems as string[] }
+        : {}),
     };
   });
 
